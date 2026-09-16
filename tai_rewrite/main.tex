@@ -288,6 +288,7 @@ The intervention experiment is the main causal-style mechanism test. We compare 
 \caption{Controlled intervention. Candidate replacement drives the dominant structured-F1 gain.}
 \label{tab:intervention}
 \footnotesize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{llcc}
 \toprule
 Dataset & Setting & Known mIoU & Unknown F1 \\
@@ -305,6 +306,7 @@ Dataset & Setting & Known mIoU & Unknown F1 \\
 & A+B & 0.497 & 0.064 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
 On VOC, score replacement alone does not improve structured F1, whereas candidate replacement raises it by roughly two orders of magnitude. Adding the stronger score on top yields only a small additional gain. Cityscapes has noisier candidates, but the ordering remains: candidate replacement helps, while score sharpening alone does not. These results support the diagnosis that candidate generation, rather than ranking quality, is the dominant bottleneck in these A2 runs.
