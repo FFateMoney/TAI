@@ -23,7 +23,8 @@ Audit target: `tai_rewrite/main.tex` + `supplementary.tex`, checked against the 
 ## Visual/LaTeX audit fixes
 
 - Added `xspace` handling for the `CCG` macro so prose no longer renders as `CCGis` / `CCGassumes`.
-- Constrained the single-column diagnostic/candidate tables to `\columnwidth` and the full-system table to `\textwidth`, removing the observed cross-column overflow.
+- Constrained the single-column diagnostic/candidate/intervention tables to `\columnwidth` and the full-system table to `\textwidth`, removing the observed cross-column overflow.
+- Constrained the wide SMIYC supplementary table to `\textwidth`.
 - Added a float barrier before Discussion so the qualitative figure cannot drift behind the References section.
 - Removed the empty bibliography from the supplementary material; the first compiled version otherwise produced a mostly empty fourth page containing only `References`.
 - A GitHub Actions compile workflow now produces the main and supplementary PDFs plus LaTeX logs for repeatable checking.
@@ -33,8 +34,9 @@ Audit target: `tai_rewrite/main.tex` + `supplementary.tex`, checked against the 
 1. **Exact construction of `M_fg`** — The archived complement manuscript only calls it the image foreground used by the pipeline; it does not specify a reproducible operational construction in the manuscript text available in this repository.
 2. **Exact class-agnostic mask-generator configuration** — The archived manuscript describes the capability and backbone comparison but does not provide enough implementation detail in the available text to reconstruct all generator settings. This should be recovered from the cloud code/config before submission if possible; it does not require rerunning experiments.
 3. **Computational cost** — Reviewer 1 requested training/inference time, memory, and module overhead. No measured values are present in the archived paper sources, so the rewrite does not fabricate them. This remains an acknowledged unresolved reviewer request.
-4. **Held-out leakage guarantee** — Threshold/evaluator provenance is stated conservatively, but the repository does not contain enough raw experiment artifacts in this rewrite folder to independently re-audit every split/threshold selection path. The paper therefore avoids hidden-test or leakage-free benchmark claims.
-5. **Author/affiliation and code-release metadata** — Still placeholders / submission logistics.
+4. **Component-level F1 requested by Reviewer 2** — The archived sources expose AUPR and structured F1 diagnostics but do not contain the requested component-level F1 analysis. The rewritten paper instead makes the existing score-vs-candidate intervention load-bearing and narrows the causal wording; the missing component-level analysis should not be fabricated.
+5. **Held-out leakage guarantee** — Threshold/evaluator provenance is stated conservatively, but the repository does not contain enough raw experiment artifacts in this rewrite folder to independently re-audit every split/threshold selection path. The paper therefore avoids hidden-test or leakage-free benchmark claims.
+6. **Author/affiliation and code-release metadata** — Still placeholders / submission logistics.
 
 ## Submission-level interpretation
 
