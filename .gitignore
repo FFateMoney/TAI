@@ -1,0 +1,50 @@
+# ===== 归档目录（不纳入版本库） =====
+归档/
+
+# ===== macOS 系统垃圾文件 =====
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ===== LaTeX 编译中间产物 =====
+*.aux
+*.log
+*.out
+*.blg
+*.bbl
+*.spl
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.bcf
+*.run.xml
+
+# ===== 临时构建目录 =====
+saseg_paper/tmp/
+saseg_paper/.pptx_build/
+**/.pptx_build/
+
+# ===== 编辑器 / IDE =====
+.vscode/
+.idea/
+*.swp
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== Node =====
+node_modules/

@@ -1,0 +1,109 @@
+Dear Dr. Peng:
+
+I have now reviewed the recommendation of the associate editor and reviewer comments on your manuscript TAI-2026-Apr-A-00756 entitled "Structured Abstention Segmentation: Native Unknown Representation for Open-World Dense Prediction" which you submitted to the IEEE Transactions on Artificial Intelligence.  
+
+Based on this information, your manuscript cannot be accepted in its current form for publication in the IEEE Transactions on Artificial Intelligence.
+
+I encourage you to consider the comments and resubmit the paper as a new submission.
+
+In writing a review, it is unacceptable for a referee to require additional citations for the sole purpose of influencing bibliometric measures of either an individual or a periodical. Authors should not add irrelevant citations just to satisfy the request from a referee.
+
+When submitting your revised manuscript as a new submission, please quote the old paper ID and include a detailed description of how the reviewer's comments have been addressed. There is no guarantee that your resubmitted manuscript will return to the same reviewers.
+
+When you are ready to submit your revision, visit the following link:
+https://ieee.atyponrex.com/submission/submissionBoard/REX-PROD-2-F3822095-A9E4-4A44-AB1B-B8399D3E8B3F-D439D5C3-D340-44E2-AD85-F9F4390D1993-50411/current?idtype=external
+
+Once you have uploaded the paper, you will receive a new manuscript number.
+
+IMPORTANT: Your original files are available to you when you upload your revised manuscript. Please delete any redundant files before completing the submission.
+
+Thank you for considering the IEEE Transactions on Artificial Intelligence for the publication of your research.  
+
+Sincerely,
+
+Prof. Jun Wang, FIEEE, FIAPR, FHKAE, MAE
+Editor-in-Chief, IEEE Transactions on Artificial Intelligence
+tai.eic@cityu.edu.hk
+
+Associate Editor Comments to Author:
+
+Associate Editor
+Comments to the Author:
+The topic is interesting, but there are some critical concerns that need to be addressed, see the reviewer's comments for details. For instance, key claims require supporting evidence; experiments are insufficient; some key parts need further clarification or justification.
+
+
+
+
+Reviewer(s)' Comments to Author:
+
+Reviewer: 1
+
+Comments to the Author
+please check the attached pdf for detailed review report.
+
+Reviewer: 2
+
+Comments to the Author
+- Your paper has real value: the A1/A2 decoupling and candidate-purity diagnosis
+ are genuine, reusable contributions, and the cross-domain breadth and honesty
+ are commendable.
+- However, the method shows no clear advantage, since PerPixel-K+1 beats it on
+ Synapse A1 (F1 0.797 vs 0.721) and runs on Synapse only; please test all four
+ datasets at >=3 seeds, or down-scope the central claim.
+- The flagship gap is partly a rare-class threshold artifact and partly
+ pre-existing, so report component-level F1 and AUPRC.
+- Finally, cite RbA, Mask2Anomaly, and Cen et al., and re-run load-bearing tables
+ leakage-free.
+
+Reviewer: 3
+
+Comments to the Author
+Thank you for submitting your work. This paper addresses an important topic, mask segmentation for open-set recognition (OSR) in the medical domain. Unfortunately, I believe this paper doesn't meet the bar to be accepted in IEEE TAI in its current state. SASeg is mostly a combination of existing components/methodology, and the problem setting for which the authors' suggested methodology can be applied is not clear.
+The following comments explain in more detail:
+
+1. I don't see any mention of the code in the paper, which makes me concerned about reproducibility. I can see the implementation detail in the Supplementary Material, but the authors should upload the code and guidelines to the anonymous repository.
+
+2-1. Although the evaluation framework (A1/A2 dual protocols) is mentioned as one of the contributions, this is simply grouping the previous evaluation metrics (such as F1, IoU, or AUROC) and having different training/testing scenarios. I appreciate the authors' efforts to precisely evaluate the suggested model, but I don't consider this a contribution since the authors did not suggest a new evaluation pipeline/approach/metric (Or, at least, this can not be the first contribution mentioned in the introduction).
+
+2-2. Following the above, the authors explained the A1/A2 dual protocols in Section III-B. However, since this is not related to the research objectives/question nor to the problem that the paper tries to solve, it is more appropriate to reposition this in Section V-A-3.
+
+3.  Likewise, in the introduction, "The detection-structuring gap as a domain-general phenomenon" is explained as one of the contributions, while this is more like an observation that the authors found during experiments. I recommend removing this from the list of contributions and simply mentioning this in the experimental results.
+
+4. It is hard to imagine exact cases where unknown pixels require "spatial consistency". In Section III, the authors simply explain this as "Closed-set models are forced to assign such regions to the most similar known class, producing erroneous predictions that carry potential harm in safety-critical applications." However, this is the reason why the OSR model is needed, not why the prediction of unknown pixels should be structured. If this is a problem related to the medical domain, the authors should explain in more detail in Section III.
+
+5. Figure 1 is very verbose, and its contents are redundant to Section II. I don't feel the need for Figure 1, especially considering that it was never referred to in the main body. If the authors wanted to emphasise the contents of Figure 1, I recommend removing it and just making the point more clearly in Section II.
+
+6. Figure 4 is not of high quality, and it is hard to recognise since different components like the encoder, decoder, queries, mask pooling, and support score are all the same square shape. Should redraw it to make the model architecture clearer.
+
+7. In Section IV, the authors explain each component of SASeg, but do not cite any previous works (i.e.,  Swin-T). Therefore, it is hard to figure out which are genuinely the author's contributions and which are extended or reused from previous works. Should have clearer writing about technical contributions.
+
+8. Most importantly, it is not clear which component of the SASeg is a novel contribution. Using  Encoder-Pixel Decoder-Transformer Decoder architecture for mask segmentation was previously suggested in MaskFormer (Cheng et al., "Per-Pixel Classification is Not All You Need for Semantic Segmentation," NeurIPS, 2021), and its usage for the anomalies/unknown class segmentation was suggested in the Mask2Anomaly (Liu et al., "Mask2Anomaly: Mask Transformer for Universal Open-set Segmentation", IEEE TPAMI, 2024). First of all, the authors should include Mask2Anomaly work as a related work. Second, I assume that the authors' contributions are 1) explicitly addressing unknown classes with unknown-class supervision, and 2) setting geometric support boundaries with prototype-spheres. This goes back to the question in comment 4: in which cases or problems does having structured unknown pixel segmentation matter?
+
+9. Every experiment in the paper is inherently an ablation study, rather than directly comparing SASeg with previous works. I can see authors explain the reason for such a baseline setup, but they are mostly due to the suggested A1/A2 protocol. The authors could have an additional section that evaluated previous baselines in the traditional evaluation setup (Or the problem formulation of why the A1/A2 protocol matters so much should be more directly delivered).
+
+10. If my understanding is correct, SASeg is not really outperforming baselines across the protocol and evaluation metrics in Table I. This should be analyzed in more detail in Section V-B.
+
+11. It will be better if the authors include actual results of segmented images to visually capture the performance of the suggested model in the main body. For now, I can only see that in Supplementary Material Figure 4.
+
+Reviewer: 4
+
+Comments to the Author
+The paper studies an important problem in open-world dense prediction and distinguishes unknown detection from structured unknown segmentation. The proposed integration of native unknown queries and prototype-sphere support is potentially interesting, and the cross-domain experiments reveal a useful detection–structuring gap. However, the current manuscript has several substantial issues concerning the positioning of Protocol A1, the mechanism claimed for unknown queries, the validity of the M=0 ablation, and the completeness of the method and experimental descriptions. These issues prevent the current evidence from supporting the main claims. I therefore recommend Major Revision.
+
+1. Protocol A1 is essentially supervised K+1 segmentation, and its independent value as an open-world protocol is unclear
+
+A1 uses pixel-level annotations for U_seen during training and evaluates the same unknown categories at test time. Therefore, it mainly measures whether a model can learn a supervised rejection class, rather than whether it can discover categories unseen during training.
+
+This concern is reinforced by Table I, where PerPixel-K+1 outperforms SASeg in unknown F1 under A1. The result suggests that an explicit unknown output space may matter more than the proposed query-based abstention mechanism. The authors should position A1 more cautiously as supervised segmentation for seen-unknown classes and clarify its added value beyond standard K+1 segmentation.
+
+2. The M=0 ablation is insufficiently specified and does not establish that native unknown queries are indispensable
+
+The paper does not clearly explain whether the M=0 model is trained from scratch, how seen-unknown pixels are treated, whether they remain involved in the prototype-sphere loss, or how the losses and inference rules are modified. Thus, this ablation may simultaneously change the output space, supervision, and optimization objective, making the reported performance drop difficult to interpret.
+
+In addition, PerPixel-K+1 already achieves a higher unknown F1 than SASeg under A1, showing that an explicit unknown output class can be sufficient. The authors should provide controlled baselines, including a fully specified M=0 model, parameter-matched generic queries, a binary unknown branch, and a class-agnostic query baseline. The claim that native unknown queries are necessary is currently overstated.
+
+3. The method and experimental descriptions are incomplete
+
+Several key details are missing or ambiguous, including the initialization and definition of Q; the shape and binarization of M^(l-1); its use in masked cross-attention; the supervision of the confidence branch; and the complete definitions of L_known and L_boundary.
+
+The definitions of AUROC_fg, AUPR_fg, and PerPixel-K+1-A2 are also unclear. In addition, the paper lacks qualitative evidence showing query complementarity, the behavior of M=0, prototype-sphere separation, and cases with high AUROC but near-zero F1. These omissions limit reproducibility and weaken the empirical support for the claimed detection–structuring ga

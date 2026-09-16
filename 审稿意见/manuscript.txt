@@ -1,0 +1,1680 @@
+
+===== PAGE 1 =====
+Research Article
+Structured Abstention Segmentation: Native Unknown 
+Representation for Open-World Dense Prediction
+Submission ID
+f3822095-a9e4-4a44-ab1b-b8399d3e8b3f
+Submission Version
+Initial Submission
+PDF Generation
+12 Apr 2026 02:35:45 EST by Atypon ReX
+For consideration in IEEE Transactions on Artificial Intelligence
+Page 1 of 19
+
+===== PAGE 2 =====
+For consideration in IEEE Transactions on Artificial Intelligence
+Page 2 of 19
+Files for peer review
+All files submitted by the author for peer review are listed below. Files that could not be converted to PDF are 
+indicated; reviewers are able to access them online.
+Name
+Type of File
+Size
+Page
+main.pdf
+Anonymized Main Document - 
+PDF
+442.7 KB
+Page 3
+saseg_architecture_diagram.draw
+io.png
+Image
+114.4 KB
+Page 15
+saseg_hierarchy_diagram.drawio.
+png
+Image
+76.4 KB
+Page 16
+t1_support_a1_vs_a2.png
+Image
+95.6 KB
+Page 17
+t3_pr_curve_a2.png
+Image
+196.5 KB
+Page 18
+t3_roc_curve_a2.png
+Image
+279.6 KB
+Page 19
+saseg_supplementary.zip
+Supplementary Zip Bundle
+4.9 MB
+Not converted to PDF
+
+===== PAGE 3 =====
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+1
+Structured Abstention Segmentation: Native
+Unknown Representation for Open-World Dense
+Prediction
+Abstract—Dense segmentation systems are typically built un-
+der a closed-set assumption, forcing every pixel to be assigned
+to one of the training classes even when the scene contains
+unfamiliar content. In high-stakes domains such as medical
+imaging, this can produce hazardous, high-confidence errors;
+more broadly, it exposes a general open-world failure mode in
+dense prediction. Existing methods mostly treat unknown han-
+dling as a post-hoc thresholding problem; however, the capability
+to detect unknown pixels and the capability to organize them
+into coherent, region-level abstention outputs are fundamentally
+distinct competencies. This paper formulates this problem as
+Structured Abstention Segmentation (SASeg) and proposes a
+framework in which dedicated unknown query slots participate
+directly in Transformer-based region parsing, further augmented
+by a prototype-sphere module that establishes geometric support
+boundaries for the known label space. We also introduce dual
+evaluation protocols A1/A2 to separately assess seen-unknown
+structured abstention and unseen-unknown detection generaliza-
+tion. Experiments on two multi-organ CT datasets (Synapse and
+AMOS22) and two natural-image benchmarks (PASCAL VOC
+and Cityscapes) reveal that native unknown queries are necessary
+for structured abstention—removing them collapses unknown
+F1 by over 90% even when post-hoc signals retain strong
+pixel-level ranking capability (AUROC>0.97). As a diagnostic
+characterization of the unseen-unknown setting, the experiments
+further show that high detection performance does not imply
+usable structured outputs: candidate purity, not detection scores,
+is the core bottleneck for unseen-unknown structuring, and this
+gap remains an open problem. Both findings hold consistently
+across medical and natural-image domains, supporting them as
+general properties of open-world dense segmentation rather than
+CT-specific artifacts.
+Impact Statement—Dense segmentation systems deployed in
+open environments can fail silently by assigning unfamiliar
+content to known classes with high confidence, which is especially
+problematic in safety-critical settings such as medical imaging. By
+treating abstention as a structured output rather than a post-hoc
+alarm, this work helps make out-of-scope regions more visible
+to downstream users and may better support review, deferral,
+and human oversight. The proposed protocols also encourage
+evaluation of two practically different questions: whether a model
+can rank unfamiliar content as risky, and whether it can produce
+coherent abstention regions that are usable in workflow. At the
+same time, our results show that strong detection scores alone do
+not guarantee safe structured outputs, underscoring the need for
+cautious deployment and further validation before high-stakes
+autonomous use.
+Index Terms—open-world recognition, prototype sphere, re-
+gion parsing, semantic segmentation, structured abstention
+I. INTRODUCTION
+D
+EEP-learning-based segmentation models have become
+central to dense prediction pipelines in high-impact
+domains, with especially prominent roles in medical imaging
+tasks such as organ segmentation in CT and lesion segmen-
+tation in MRI [1], [2]. Yet most prevailing models remain
+built upon a closed-set assumption: every pixel in the input
+image is presumed to belong to one of the categories defined
+during training. In deployment, this assumption is routinely
+violated—images may contain structures never annotated dur-
+ing training, or exhibit distribution shifts due to sensors,
+protocols, or populations. Under the closed-set assumption,
+the model is nevertheless forced to assign each pixel to the
+most similar known category, producing high-confidence yet
+silently erroneous predictions in unknown regions. This failure
+mode is consequential in any open-world deployment context,
+from clinical imaging [3]–[5] to natural-scene understanding
+and autonomous driving.
+Existing approaches to unknown handling in dense seg-
+mentation fall into two families: post-hoc risk scores (e.g.,
+thresholding per-pixel uncertainty after a standard closed-set
+forward pass) and auxiliary unknown branches (a separate bi-
+nary head appended outside the main encoder–decoder). Both
+treat the unknown as a by-product of the prediction pipeline
+rather than a native constituent of the output space, and
+neither produces coherent, region-level abstention masks [6]–
+[9]. Specific methods and their limitations are reviewed in
+Section II.
+A central observation of this paper is: the ability to detect
+unknown pixels is fundamentally distinct from the ability
+to structure them into coherent abstention regions. Detec-
+tion concerns whether a scoring function can rank unknown
+pixels above known ones; structuring concerns whether the
+model can organize those pixels into spatially coherent, region-
+level masks that are directly usable in downstream workflows.
+We argue that these are two essentially different capabilities,
+and conflating them under a single evaluation metric obscures
+critical failure modes.
+Motivated by the above observation, we formalize the
+concept of structured abstention for open-world dense seg-
+mentation, using medical imaging as a particularly high-
+risk motivating domain, and propose a systematic research
+framework. The framework comprises three components.
+First, we introduce dual evaluation protocols A1/A2
+that separately assess seen-unknown structuring and unseen-
+unknown detection generalization, explicitly decoupling two
+capabilities that prior work conflates.
+Second, we propose a region parsing architecture with
+native unknown slots: learnable unknown queries jointly par-
+ticipate in parsing alongside known-class queries within the
+same Transformer-based region competition framework, so
+that unknown regions emerge as first-class components of the
+Page 3 of 19
+
+===== PAGE 4 =====
+2
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+output. A prototype-sphere support module further establishes
+geometric support boundaries for known classes, providing a
+principled knownness judgment for each candidate region.
+Third, we design a multi-signal decision framework that
+fuses geometric support scores and mask-level uncertainty,
+acknowledging that different unknown regimes are dominated
+by different leading signals.
+In summary, this paper makes the following contributions:
+1) Problem formulation and evaluation framework. We
+formalize structured abstention for open-world dense
+segmentation and introduce dual protocols A1/A2 that
+decouple structuring from detection assessment.
+2) Native unknown representation and its necessity.
+We propose a native unknown-slot region parser with
+prototype-sphere support; M=0 ablation on four datasets
+confirms that removing native unknown slots collapses
+unknown F1 by over 90%.
+3) The detection–structuring gap as a domain-general
+phenomenon.
+Even
+with
+AUROC>0.97,
+pixel-level
+structuring can completely fail; candidate purity—not
+detection scores—is identified as the dominant bottleneck
+across all four datasets spanning medical and natural-
+image domains.
+II. RELATED WORK
+We review four lines of research most closely related to
+structured abstention in dense segmentation, including medical
+imaging where the deployment risk of silent open-world
+failures is especially acute. This section addresses the first
+two; the latter two (query-based segmentation architectures
+and prototype-based methods) are discussed in Section II-C
+and Section II-D, respectively.
+A. Open-Set Recognition and Out-of-Distribution Detection
+Open-Set Recognition (OSR) aims to classify inputs from
+known categories while rejecting inputs belonging to cate-
+gories unseen during training. Early work modeled the prob-
+lem as thresholding calibrated confidence scores. Bendale and
+Boult proposed OpenMax, which, grounded in extreme value
+theory, replaces the closed-set softmax layer with an open-set
+scoring function, enabling the network to output explicit “un-
+known” probabilities [10]. Subsequent works explored various
+rejection criteria. Chen et al. proposed Adversarial Reciprocal
+Point Learning (ARPL), which jointly maintains prototypes for
+known classes and for the open space to separate the two [11].
+Zhou et al. introduced learnable placeholders to reserve rep-
+resentational space for potential unknown classes [12].
+In parallel, Out-of-Distribution (OoD) detection focuses on
+distinguishing in-distribution inputs from those originating
+from different data sources. Hendrycks and Gimpel established
+the widely used MSP baseline, employing the maximum
+softmax probability as a confidence indicator [6]. Liu et al.
+proposed the energy score, demonstrating that the log-sum-
+exp of logits provides a theoretically grounded and empirically
+superior alternative to MSP [7]. More recent work further
+leverages virtual outlier synthesis—generating pseudo-OoD
+features during training—as well as vision-language priors
+for open-vocabulary OoD detection [13], [14]. Yang et al.
+provided a comprehensive survey that unifies OoD detection
+taxonomies across classification, detection, and segmentation
+tasks [15]. Recent work in IEEE Transactions on Artificial In-
+telligence has also explored alternative OoD paradigms beyond
+confidence thresholding, including rule-based OoD detection
+frameworks that improve transparency in how distributional
+violations are identified [16].
+A growing body of work extends OSR and OoD detection
+from image-level classification to object-level detection; for
+example, OW-DETR trains an explicit “unknown” query to
+localize novel objects at inference time [17], with subsequent
+work extending this to open-vocabulary supervision [18], [19].
+Despite this progress, the extension to pixel-level structured
+abstention in dense segmentation remains largely unexplored:
+existing methods produce per-pixel or per-instance anomaly
+scores but do not address the structuring of those scores into
+coherent segmentation outputs.
+Fig. 1.
+Comparison of open-world recognition paradigms. Existing methods
+predominantly focus on image-level anomaly scoring (e.g., OSR) or object-
+level bounding box detection, which lack spatial coherence for dense predic-
+tion tasks. We identify a critical detection-structuring gap—the fundamental
+limitation where even high-quality pixel-level detection scores cannot be
+trivially thresholded to form usable structured regions. Our proposed Struc-
+tured Abstention Segmentation (SASeg) addresses this by elevating unknown
+regions to first-class structural outputs at the pixel level.
+B. Anomaly Detection and Selective Prediction in Dense Seg-
+mentation
+Medical imaging provides one of the clearest high-stakes
+settings in which open-world dense prediction failures mat-
+ter, and has therefore motivated a substantial literature on
+anomaly and out-of-distribution analysis. The Medical Out-
+of-Distribution (MOOD) challenge established a benchmark in
+which models are trained on normal brain or abdominal scans
+and evaluated on anomaly localization, with competing ap-
+proaches spanning reconstruction-based, self-supervised, and
+feature-matching paradigms [20]–[23].
+Uncertainty estimation via MC-Dropout and deep ensem-
+bles has been widely adopted in medical segmentation as
+a plug-and-play reliability signal, with related work further
+Page 4 of 19
+
+===== PAGE 5 =====
+STRUCTURED ABSTENTION
+3
+studying calibration and structure-level assessment [24]–[27].
+These methods remain within closed-set label spaces and
+produce pixel-level scores rather than structured abstention
+outputs.
+Related work on selective prediction and abstention likewise
+emphasizes reliability, but dense segmentation poses a differ-
+ent unit of abstention than classification: the goal is not only
+to reject uncertain predictions, but to localize abstention as
+a structured spatial region. This perspective connects medical
+uncertainty estimation to broader mask-level dense prediction
+work, including MaskFormer and outlier-aware segmentation,
+which suggest that pixel-level anomaly scoring and coherent
+unknown-mask representation are not equivalent [3], [9], [28],
+[29]. Relative to this literature, our focus is not simply medical
+OoD scoring, but the more general dense-segmentation ques-
+tion of how to represent and evaluate structured abstention
+under different unknown regimes.
+C. Query-Based Segmentation Architectures
+In recent years, semantic and instance segmentation have
+progressively shifted from the traditional per-pixel classi-
+fication paradigm toward mask-level parsing. MaskFormer
+explicitly argues that semantic segmentation need not be
+equivalent to classifying each pixel independently; instead,
+a set of learnable queries can predict a set of masks and
+their semantic labels, reformulating dense prediction as a set
+prediction problem [29]. Building on this, FastInst demon-
+strates the simplicity and efficiency of query-based mask
+parsing in real-time segmentation, while Mask DINO further
+unifies the Transformer decoding framework for detection and
+segmentation tasks, establishing query-driven region parsing as
+an important technical direction in visual segmentation [30],
+[31]. Recent work has also begun discussing the adaptability
+of queries themselves in continual segmentation and open-
+environment settings, indicating that query design is not a fixed
+engineering detail but directly affects how models parse novel
+categories and novel scenes [32].
+These works establish that query-based architectures are
+naturally suited for region-level outputs; however, their output
+spaces remain closed-set—queries are assigned to known
+classes or instances, with no native slot for the unknown. This
+paper extends this framework by introducing native unknown
+query slots, the design of which is detailed in Section IV.
+D. Prototype-Based Visual Recognition Methods
+Parallel to query-based segmentation, another line of re-
+search employs prototypes, prototype-spheres, or open-space
+representations to characterize the feature support domain
+of known classes. In open-set recognition, OpenMax cor-
+rects the overconfidence of closed-set softmax by modeling
+tail distributions, while subsequent placeholder learning and
+ARPL further model the “unknown” in terms of positional
+relationships relative to known-class prototypes: the former re-
+serves representational slots for potential unknown categories,
+while the latter explicitly widens the gap between the known
+space and the open space via reciprocal points and adversarial
+learning [10]–[12]. The common thread across these methods
+is that they do not rely solely on a single confidence score, but
+instead attempt to establish some geometric support boundary
+for known classes in the feature space.
+The prototype-sphere support module in this paper shares
+the geometric motivation of this line of research, but repur-
+poses it from class matching or sample rejection to a region
+support arbiter: rather than directly parsing which class a
+feature belongs to, it determines—after queries have produced
+candidate masks—whether each candidate region embedding
+still falls within the support domain of any known class. The
+specific design is detailed in Section IV.
+III. PROBLEM FORMULATION
+A. Structured Abstention Segmentation
+Let the input image be X ∈RH×W ×C and the known
+class label set be K = {1, . . . , K}. Under the closed-set
+segmentation paradigm, the model is required to output a
+label yp ∈K ∪{0} for each pixel p (where 0 denotes
+background), implicitly assuming that all foreground pixels
+can be accurately described by some class in K. In practice,
+however, images inevitably contain categories never annotated
+during training—in medical CT, these may be rare lesions,
+unlabeled organs, or vascular variants; in natural-image seg-
+mentation, they may be novel object classes or uncommon
+scene elements—collectively referred to as unknown regions.
+Closed-set models are forced to assign such regions to the
+most similar known class, producing erroneous predictions that
+carry potential harm in safety-critical applications.
+This paper formalizes the above problem as Structured
+Abstention Segmentation (SASeg): the model’s output space
+is extended from K ∪{0} to K ∪{0, unknown}, where
+unknown is not a pixel set delineated post-hoc by an un-
+certainty threshold, but rather a native component of the
+model’s output space—produced by a dedicated query slot
+that competes with known-class queries during the region-level
+parsing process. The key distinction of this formulation is:
+• Post-hoc methods (e.g., MSP thresholding, energy scores)
+merely apply a secondary judgment to the confidence of
+existing predictions and cannot guarantee spatial coher-
+ence of the unknown region;
+• In our framework, unknown queries compete with known-
+class queries for attention resources within the same
+Transformer decoder, thereby producing structured ab-
+stention outputs at the region level.
+B. Dual-Protocol Evaluation Framework
+We further argue that unknown segmentation involves two
+fundamentally distinct capabilities at the evaluation level,
+which should not be conflated under a single metric system.
+To this end, we design the following dual protocol:
+a) Protocol A1 (Seen-Unknown Structured Abstention):
+The training set contains annotations for K as well as anno-
+tations for a set of seen unknown classes Useen. The unknown
+regions in the test set are of the same classes as those
+in the training set. The primary metrics are unknown F1,
+IoU, Precision, and Recall, measuring whether the model can
+structure seen unknown regions into coherent segmentation
+masks.
+Page 5 of 19
+
+===== PAGE 6 =====
+4
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+b) Protocol A2 (Unseen-Unknown Detection Generaliza-
+tion): The training set is the same as A1, but the test set
+contains unknown classes Uunseen that were never seen during
+training (Useen ∩Uunseen = ∅). Because the model has no prior
+knowledge of Uunseen, pixel-level F1/IoU would be severely
+distorted by extreme class imbalance; the primary metrics are
+therefore threshold-independent detection measures: AUROC,
+AUPR, and FPR@TPR95, assessing whether the model can
+assign higher anomaly scores to unseen unknown pixels rela-
+tive to known-class pixels.
+The fundamental distinction between the two protocols
+lies in the type of capability being examined: A1 examines
+structuring capability—whether unknowns can be organized
+into spatially coherent regions; A2 examines detection gen-
+eralization capability—whether effective ranking signals can
+be produced for unseen unknowns. Subsequent experiments
+(Section V) will demonstrate that these two capabilities are
+dominated by different signals and exhibit markedly different
+performance profiles, validating the necessity of the dual-
+protocol split.
+IV. METHODOLOGY
+This section details the proposed structured abstention
+segmentation framework. The overall pipeline, illustrated in
+Figure 2, consists of four cascaded modules: (1) Encoder,
+(2) Pixel Decoder, (3) Region Parser, and (4) Support Module.
+A. Overall Architecture Overview
+Given an input image X ∈RH×W ×C, the encoder extracts
+multi-scale features {F1, F2, F3, F4}, and the pixel decoder
+fuses them via a Feature Pyramid Network (FPN) into a unified
+dense feature map F ∈R
+H
+4 × W
+4 ×d (d = 256). The region
+parser takes a set of learnable queries as input and interacts
+with F through a multi-layer Transformer decoder, outputting
+a mask logit map for each query. The query set comprises
+four types: K known-class queries {q1, . . . , qK}, M unknown
+queries {u1, . . . , uM} (default M = 2), 1 background aux-
+iliary query qbg, and 1 no-object auxiliary query q∅. The
+support module applies mask pooling to each query’s mask
+to obtain a region embedding zr, and employs prototype-
+sphere geometry to determine whether the region is sup-
+ported by the known label space. Finally, a per-pixel decision
+process integrates mask predictions, support scores, and no-
+object confidence to produce the output label map Yfinal ∈
+{0, 1, . . . , K, unknown}H×W .
+B. Encoder and Pixel Decoder
+We use a Swin-T encoder and an FPN-style pixel decoder
+to produce the unified dense feature map F ∈R
+H
+4 × W
+4 ×256.
+Additional implementation details, including stage freezing
+and auxiliary boundary handling, are provided in the supple-
+mentary material.
+C. Region Parser
+The region parser is the core component of this framework,
+responsible for parsing the dense feature map F into a set
+of structured region masks. It is essentially a query-based
+Transformer decoder, in which all query types— known,
+unknown, background, and no-object—compete for attention
+resources within the same decoder.
+1) Query Configuration: The query set consists of Nq =
+K + M + 2 learnable vectors, all of dimension d = 256 and
+randomly initialized:
+• K known-class queries qk (k = 1, . . . , K): each query
+is responsible for parsing the region mask of the corre-
+sponding known class;
+• M unknown queries um (m = 1, . . . , M; default
+M = 2): absorb regions that cannot be stably explained
+by any known query; these are the key enabler of native
+abstention outputs;
+• 1 background auxiliary query qbg: participates in de-
+coding to provide background context;
+• 1 no-object auxiliary query q∅: participates as an
+additional context token.
+It should be noted that qbg and q∅receive no independent
+Dice/BCE mask supervision in the current version: back-
+ground labels are obtained by default fallback to pixels not
+occupied by known/unknown queries; no-object determination
+is performed by the scalar confidence branch of each known
+query qk (Section IV-C4), not by separate mask output from
+q∅.
+We set M = 2 by default; the ablation in Table III validates
+this choice.
+2) Transformer Decoding Layers: The decoder has L = 3
+layers, each with the following structure:
+Q′ = LN(Q + SelfAttn(Q, Q, Q)) ,
+(1)
+Q′′ = LN
+
+Q′ + MaskedCrossAttn(Q′, F, F; M(l−1))
+
+,
+(2)
+Q(l) = LN(Q′′ + FFN(Q′′)) ,
+(3)
+where LN denotes Layer Normalization and M(l−1) is the
+sigmoid-binarized mask logit output from the previous layer
+used as an attention mask. The first layer (l = 1) has no mask
+constraint; queries attend to the entire image.
+a) Masked Attention Mechanism: In the cross-attention of
+Equation (2), each query attends only to the spatial positions
+covered by its predicted mask from the previous layer. This
+mechanism serves two purposes: (1) reducing computational
+complexity by avoiding global image attention per query; (2)
+enhancing region exclusivity, promoting different queries to
+converge layer by layer to different spatial regions, thereby
+achieving competitive region allocation between known and
+unknown queries.
+3) Mask Output Head: After decoding, each query q yields
+a query embedding eq ∈Rd. A mask logit map is obtained
+via dot product with pixel features:
+Mq(p) = e⊤
+q ·F(p),
+∀p ∈
+
+1, . . . , H
+4
+	
+×
+
+1, . . . , W
+4
+	
+, (4)
+followed by bilinear interpolation upsampling to the original
+resolution H × W.
+Page 6 of 19
+
+===== PAGE 7 =====
+STRUCTURED ABSTENTION
+5
+Fig. 2.
+Overall architecture of the proposed SASeg framework. The input image is processed by an encoder and a pixel decoder to extract a dense feature
+map F. The region parser utilizes a Transformer decoder to parse learnable queries (known/unknown/background/no-object) into corresponding mask logit
+maps. The support module determines the knownness of each region based on prototype-sphere geometry, ultimately producing pixel-wise segmentation results
+that include the unknown label.
+4) No-Object Mechanism: In dense segmentation, not every
+known class is present in every image, crop, or view. Without
+handling this case explicitly, the model can produce spurious
+responses for classes that are absent from the current sample.
+This issue is especially common in slice-based CT, where
+many organs appear only in a subset of axial slices. The
+decoder retains a no-object auxiliary query q∅as a context
+token, enabling other queries to obtain global information that
+some known classes may be absent from the current sample
+via self-attention (Table III validates its auxiliary benefit via a
+“w/o no-object” ablation). However, no-object determination
+itself is performed by the scalar confidence branch of each
+known query qk:
+confk = σ(Wconf · eqk + bconf) ,
+(5)
+where σ is the sigmoid function. During training, if known
+class k is absent in the ground truth of the current sample
+(zero mask), the supervision target is confk →0. At inference,
+if confk < τobj (default τobj = 0.5), the query is judged as a
+no-object and excluded from subsequent decisions.
+D. Support Module
+The support module is the key component that distinguishes
+this framework from conventional post-hoc unknown detec-
+tion, and its core idea is: to establish explicit geometric support
+boundaries (prototype-spheres) for the known label space,
+transforming unknown determination from “whether uncer-
+tainty exceeds a threshold” to “whether a region representation
+falls outside the support domain of any known class.”
+1) Region Embedding: For each query’s mask, a region
+embedding is extracted from the dense feature map via soft
+mask pooling:
+zr =
+P
+p σ(Mq(p)) · F(p)
+P
+p σ(Mq(p))
+,
+(6)
+where σ is the sigmoid function. The rationale for using
+a soft mask (continuous probability values) rather than a
+hard mask (binary) is that soft pooling is more robust to
+boundary uncertainty, and gradients can flow back through
+the pooling operation to the mask logits, enabling end-to-
+end joint optimization between region embeddings and mask
+predictions.
+2) Prototype-Sphere Design: For each known class k, we
+maintain R prototype-spheres, each defined by a center vector
+and a learnable radius:
+(µk,r, ρk,r),
+k = 1, . . . , K,
+r = 1, . . . , R.
+(7)
+The default setting is R = 2, validated by the ablation
+in Table III. Initialization and online prototype updates are
+described in the supplementary material.
+3) Support Score: Given a region embedding zr, its support
+score with respect to the known label space is defined as the
+overshoot beyond the nearest prototype sphere boundary:
+overshootk,r(z) =
+z −µk,r
+
+2 −ρk,r,
+(8)
+s(z) = min
+k min
+r
+overshootk,r(z).
+(9)
+The geometric interpretation is clear: s(z) < 0 indicates that
+the region falls inside some known class’s prototype sphere
+and is thus supported by the known label space; s(z) > 0
+indicates that the region lies outside all prototype spheres of all
+known classes, with larger overshoot corresponding to stronger
+absence of known-class support.
+Compared to the conventional cosine-similarity approach
+1 −maxk cos(z, ck), the prototype-sphere introduces an ex-
+plicit radius parameter ρk,r, enabling the model to learn the
+support domain boundary of each known class rather than
+relying solely on directional distance.
+E. Loss Function
+The total loss function consists of four terms:
+L = Lknown + λuLunknown + λbLball + λdLboundary,
+(10)
+where λu = 1.0, λb = 0.5, λd = 0.3. The background
+auxiliary query qbg and the no-object auxiliary query q∅
+receive no separate Dice/BCE mask supervision in the current
+version; background is defined by the default fallback label in
+the final decision, and no-object supervision is achieved solely
+through confk in Equation (5).
+Page 7 of 19
+
+===== PAGE 8 =====
+6
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+1) Known-Class Supervision Lknown: Known-class masks
+are trained with standard Dice+BCE supervision, while absent
+classes also supervise the no-object confidence branch. The
+explicit form is provided in the supplementary material.
+2) Unknown Region Supervision Lunknown: First, the union
+response of the M unknown queries is computed (element-
+wise maximum):
+Uunion(p) =
+max
+m=1,...,M σ(Mum(p)) ,
+(11)
+and segmentation supervision is then applied to the union
+mask:
+Lunknown = Dice(Uunion, GTunk)+BCE(Uunion, GTunk)+λdivLdiv.
+(12)
+Here Ldiv = max(0, IoU(Mu1, Mu2) −0.5) is a lightweight
+de-redundancy term that prevents multiple unknown queries
+from collapsing to identical regions, with λdiv = 0.001.
+3) Geometric Constraints Lball: The geometric constraints
+consist of three components that jointly shape the support
+domain boundary of the prototype spheres:
+Lpull =
+X
+zr∈Zknown
+max(0, s(zr)) ,
+(13)
+Lpush =
+X
+zr∈Zunk
+max(0, δ −s(zr)) ,
+(14)
+Lrad =
+X
+k,r
+ρk,r,
+(15)
+Lball = Lpull + Lpush + 0.01 · Lrad,
+(16)
+where Zknown is the set of high-confidence known region
+embeddings (mask IoU > 0.5), Zunk is the set of seen-
+unknown region embeddings, and δ = 0.5 is the push margin.
+Lpull pulls known regions into their corresponding prototype
+spheres, Lpush pushes unknown regions at least δ away from
+all known spheres, and Lrad prevents radii from growing
+unboundedly to maintain the discriminative power of support
+domain boundaries.
+4) Boundary Suppression Lboundary: An auxiliary boundary-
+suppression term discourages unknown activation in annotated
+boundary bands; its exact definition is provided in the supple-
+mentary material.
+F. Inference and Decision Pipeline
+The per-pixel decision pipeline at inference time branches
+into two paths according to the evaluation protocol, sharing
+the forward computation and no-object filtering but differing
+only in the final decision signal.
+a) Shared Computation: After a complete forward pass
+on the input image, no-object filtering is first applied: known
+queries with confk < τobj are marked as inactive. The per-
+pixel best known-class response and the unknown union are
+then computed:
+pbest(p) = max
+k∈A σ(Mqk(p)) ,
+(17)
+k∗(p) = arg max
+k∈A
+σ(Mqk(p)) ,
+(18)
+Uunion(p) = max
+m σ(Mum(p)) ,
+(19)
+where A ⊆{1, . . . , K} is the set of active queries that passed
+no-object filtering.
+b) A1 Path (Support Score): For each active query, mask
+pooling is performed and the support score s(zr) is computed
+(Equation (9)); the per-pixel decision is:
+Y (p) =
+
+
+
+
+
+
+
+
+
+k∗(p),
+if pbest(p) > 0.5 ∧s(zk∗(p)) < τabs,
+unknown,
+if pbest(p) > 0.5 ∧s(zk∗(p)) ≥τabs,
+unknown,
+if Uunion(p) > 0.5,
+0,
+otherwise (background).
+(20)
+c) A2 Path (Ensemble Score): In the unseen-unknown
+setting, the global ranking capability of the support score is
+constrained by the competitive-ambiguity regime (analyzed in
+detail in Section V). Accordingly, the A2 protocol switches to
+an ensemble anomaly score:
+e(p) = 0.8 × (1 −pbest(p)) + 0.2 × Uunion(p),
+(21)
+and the per-pixel decision replaces s(zk∗(p)) ≥τabs in Equa-
+tion (20) with e(p) ≥τens. In the ensemble, (1 −pbest)
+(i.e., neg-maxprob) measures the uncertainty of known-class
+predictions, while Uunion measures the direct response of
+unknown queries; the two are complementary in covering the
+support-deficit and competitive-ambiguity unknown regimes,
+respectively. The weights 0.8/0.2 were selected via grid search
+(step size 0.1) on the validation set; additional hyperparameter-
+selection details are provided in the supplementary material.
+d) Threshold Selection: τobj, τabs, and τens are all deter-
+mined once on the validation set and then frozen; they are not
+adjusted on the test set.
+V. EXPERIMENTS
+A. Experimental Setup
+1) Datasets:
+a) Synapse Multi-Organ CT (Main Experiments): We
+employ the Synapse Multi-organ dataset (syn3379050),
+comprising 30 abdominal CT scans (512×512 resolution) with
+13-class organ annotations, consistent with the mainstream
+benchmark scale in this field [33], [34]. Following the publicly
+available case-ID split, the annotated training pool consists of
+img0001--0010 and img0021--0040 (30 cases in total);
+since Synapse has no official annotated validation set, we hold
+out the last 4 cases (img0037--0040) from the training
+pool as the validation set, using the remaining 26 cases for
+training. The official test set img0061--0080 (20 cases)
+does not provide public annotations; therefore, all quantitative
+tables in this paper are reported on the annotated validation
+set. The protocol split uses K=8 known classes, 3 seen
+unknown classes, and 2 unseen unknown classes. The split
+follows clinical semantic logic rather than label numbering
+order, with the seen/unseen boundary aligned to the distinction
+between routine anatomical structures and pathological find-
+ings. Detailed class assignments for Synapse and AMOS22 are
+provided in the supplementary material. Protocol A1 training
+uses annotations for Useen; Protocol A2 training also uses Useen
+but evaluates Uunseen at test time.
+Page 8 of 19
+
+===== PAGE 9 =====
+STRUCTURED ABSTENTION
+7
+b) AMOS22 (Cross-Dataset Validation): We employ the
+CT-only setting of AMOS22 for cross-dataset experiments.
+Following the official split, the annotated CT training set
+contains 200 cases, the validation set contains 100 cases, with
+15-class organ annotations. The split is K=8 known classes,
+4 seen unknowns, and 3 unseen unknowns. The exact class
+assignments are intentionally different from Synapse so that
+the cross-dataset conclusions do not depend on a particular
+partition scheme; details are provided in the supplementary
+material. Detailed protocols are described in Section V-F. This
+dataset is used to validate the cross-dataset consistency of the
+core conclusions, not merely as a validation split for threshold
+selection.
+c) PASCAL VOC 2012 and Cityscapes (Cross-Domain
+Validation): To evaluate whether the core phenomena gen-
+eralize beyond medical CT, we additionally conduct cross-
+domain experiments on two standard natural-image semantic
+segmentation benchmarks: PASCAL VOC 2012 [35] and
+Cityscapes [36]. PASCAL VOC 2012 provides 20 foreground
+classes across natural scenes; Cityscapes provides 19 classes
+in urban driving scenes. Both datasets use dataset-specific
+known/seen-unseen splits designed by the same semantic-
+grouping principle as the medical experiments; full split defi-
+nitions are provided in the supplementary material.
+2) Implementation Details: All experiments are imple-
+mented in PyTorch with the Swin-T encoder and the default
+SASeg configuration (M=2, R=2). Medical volumes are pro-
+cessed slice-by-slice as 2D samples, and all experiments use a
+shared training recipe with fixed validation-selected thresholds.
+Optimizer settings, augmentations, slice filtering, and the full
+training schedule are provided in the supplementary material.
+3) Evaluation Metrics: Protocol A1 (seen-unknown struc-
+turing): known-class mIoU, unknown F1, IoU, Precision, and
+Recall. Protocol A2 (unseen-unknown detection): AUROC,
+AUPR, and FPR@TPR95 on foreground pixels (threshold-
+independent),
+supplemented
+by
+unknown
+F1
+(threshold-
+dependent, reported for reference only).
+4) Comparison Methods: The comparison methods are di-
+vided into two categories.
+a) Same-Model Signal-Replacement Baselines: To ana-
+lyze the differences among unknown decision signals, the
+first category shares the same model weights and feature
+representations obtained by training with our framework, and
+replaces only the unknown decision signal at inference. The
+evaluated signals are MSP, Energy, Uunion, MC-Dropout (A2
+only), Ensemble, and the proposed Support score. Their exact
+definitions and threshold-selection details are provided in the
+supplementary material.
+b) Independent Architecture Baselines: To distinguish
+framework contributions from signal-replacement ablations,
+we further train three architecturally independent per-pixel
+segmentation baselines. They share the same Swin-T encoder
+and FPN pixel decoder as SASeg, but replace the region parser
+with a standard 1 × 1 convolution classification head and
+are trained from scratch independently. The three baselines
+target three different questions: B1 examines whether post-
+hoc OoD signals can form usable structured abstention in the
+absence of an unknown output space; B2 establishes an upper-
+bound performance for A1 via fully-supervised seen-unknown
+annotations; B3 generalizes the detection–structuring gap as
+a cross-architecture phenomenon to rule out the possibility
+that this phenomenon is specific to query-based region parsers.
+Detailed baseline definitions are provided in the supplementary
+material. Existing query-based open-world detection methods
+(e.g., OW-DETR [17]) assume that unknown instances will
+be progressively annotated in subsequent incremental learning;
+their evaluation protocols are fundamentally incompatible with
+our A1/A2 structured abstention setting, and are therefore
+excluded from direct comparison; Section II-C provides a
+detailed explanation of this distinction.
+Pixel-level
+and
+mask-level
+anomaly
+segmentation
+methods—including
+outlier-aware
+segmentation
+[9]
+and
+related energy-based approaches—are likewise excluded from
+direct comparison for three compounding reasons. First, these
+methods assume zero unknown-class supervision: they are
+trained on a purely closed-set in-distribution dataset and
+derive all anomaly signals post-hoc, whereas SASeg A1 trains
+with explicit seen-unknown annotations and even A2 retains
+seen-unknown supervision during training. This asymmetry in
+supervision makes numerical score comparisons misleading
+regardless of the metric chosen. Second, no shared test
+partition exists: standard anomaly segmentation benchmarks
+(e.g., SegmentMeIfYouCan) define anomalies as arbitrary
+out-of-distribution
+objects
+drawn
+from
+disjoint
+datasets,
+whereas A2 defines unseen unknowns as specific held-out
+semantic classes within the same dataset distribution, yielding
+different ground-truth structures that cannot be evaluated on
+a common set. Third, the target metric differs categorically:
+anomaly segmentation reports pixel-level AUROC or FPR95
+as a ranking measure, while A1 targets region-level F1
+and IoU as a structuring measure—the precise distinction
+between detection and structuring that this paper argues
+must be assessed separately. Reconstruction-based medical
+anomaly detection methods [20] add a fourth mismatch:
+they operate in a fully unsupervised regime on normal scans
+only and have no class-level evaluation protocol, making
+cross-dataset
+metric
+alignment
+infeasible.
+For
+all
+these
+reasons, we construct controlled baselines that hold backbone,
+training data, and class split constant while varying only the
+unknown handling mechanism, isolating the contribution of
+native unknown representation from confounds introduced by
+differing supervision levels and test distributions.
+B. Independent Architecture Baselines and Boundary Condi-
+tions
+Table I summarizes the comparative results between inde-
+pendently trained per-pixel baselines and SASeg. A1 focuses
+on structured output quality; A2 reports both direct unknown
+output and post-hoc detection metrics.
+B1 confirms that post-hoc OoD signals alone cannot
+form structured unknown masks (best F1=0.024 despite
+mIoU=0.829). B2 shows that the standard K+1 segmenter
+already achieves unknown F1=0.797 in A1, establishing that
+the key factor is whether an explicit unknown output space ex-
+ists, not the decoding paradigm. B3 generalizes the detection–
+Page 9 of 19
+
+===== PAGE 10 =====
+8
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+TABLE I
+SUMMARY OF INDEPENDENT ARCHITECTURE BASELINE RESULTS ON SYNAPSE (SINGLE RUN, SEED=42). ‘DIRECT’ DENOTES THE MODEL’S DIRECT
+UNKNOWN CLASS MASK OUTPUT; ‘POST-HOC’ DENOTES DETECTION SIGNALS APPLIED ADDITIONALLY ON TOP OF A CLOSED-SET OR K + 1
+SEGMENTER; ‘---’ INDICATES THE METRIC IS NOT APPLICABLE OR NOT REPORTED FOR THAT PROTOCOL/SETTING.
+Protocol
+Method
+Known mIoU
+Unknown F1
+Unknown IoU
+AUROCfg
+AUPRfg
+A1
+PerPixel-K + MSP (post-hoc)
+0.829
+0.009
+—
+0.985
+0.837
+PerPixel-K + Energy (post-hoc)
+0.829
+0.024
+—
+0.969
+0.779
+PerPixel-K + MaxLogit (post-hoc)
+0.829
+0.020
+—
+0.969
+0.776
+PerPixel-K+1 (direct)
+0.825
+0.797
+0.663
+—
+—
+SASeg (ours)
+0.811
+0.721
+0.564
+—
+—
+A2
+PerPixel-K+1-A2 (direct)
+0.824
+0.004
+0.002
+—
+—
+PerPixel-K+1-A2 + MSP (post-hoc)
+0.824
+—
+—
+0.981
+0.111
+PerPixel-K+1-A2 + Energy (post-hoc)
+0.824
+—
+—
+0.973
+0.133
+PerPixel-K+1-A2 + MaxLogit (post-hoc)
+0.824
+—
+—
+0.973
+0.134
+SASeg + Ensemble (ours)
+0.797
+0.006
+0.003
+0.971
+0.088
+structuring gap across architectures: PerPixel-K+1-A2 col-
+lapses to F1=0.004 while retaining AUROCfg≥0.973.
+C. A1: Seen-Unknown Structured Abstention
+Table II reports the performance of different unknown
+decision signals under the Synapse A1 and A2 protocols. It is
+particularly important to note that Section V-B has already
+separately reported results for independently trained per-pixel
+baselines; this table compares only the difference in unknown
+decision signals on a fixed SASeg model. Accordingly, this
+table answers the question “given a native unknown output
+space, which inference signal is more effective,” rather than
+“which architectural implementation is superior.” Regarding
+the importance of explicit unknown output space per se, the
+reader should consult the M = 0 ablation in Section V-E2 and
+the independent baseline comparison in Section V-B together.
+To assess result stability, all methods are repeated across three
+random seeds (42, 43, 44), with mean±standard deviation
+reported.
+Differences between signals are minimal: the unknown F1
+means of Support, MSP, and Energy are essentially indis-
+tinguishable (∼0.711), and Uunion is only marginally higher
+(0.717) but within one standard deviation, indicating that in
+the A1 setting the model’s structured abstention capability is
+not primarily determined by the choice of detection signal.
+Known-class mIoU remains stably around 0.807 (±0.003)
+across all methods, confirming that introducing the unknown
+mechanism does not impair known-class performance. The
+marginal advantage of Uunion suggests that the direct mask
+response of unknown queries is the primary source of A1
+structuring capability, a judgment further corroborated by the
+M = 0 ablation (Section V-E2) and the independent baseline
+comparison (Section V-B).
+D. A2: Unseen-Unknown Detection Generalization
+The A2 columns of Table II report the detection perfor-
+mance of different signals under the Synapse A2 protocol. The
+unknown classes (labels 12–13) are never seen during training;
+the primary metrics are AUROC and AUPR on foreground
+pixels.
+Global ranking is dominated by classification uncertainty
+signals: Ensemble (AUROC=0.971) and Energy (0.970) sub-
+stantially outperform Support (0.771), validating that unseen
+unknowns belong to the competitive-ambiguity regime. De-
+spite lower AUROC, Support achieves the highest AUPR
+(0.230 vs. ≤0.088 for all others), retaining a local advantage
+in the high-precision regime where pixels confidently out-
+side all known spheres are determined with high accuracy.
+Critically, despite Ensemble achieving AUROC=0.971, its
+binarized pixel-level unknown F1 is near zero—a phenomenon
+analyzed in depth in Section V-H. ROC and PR curves for
+these signals are provided in the supplementary material.
+E. Ablation Studies
+1) Structural Ablation: Table III reports ablation results
+under the Synapse A1 protocol, where model components or
+loss terms are modified one at a time (single seed, seed=42).
+Key findings are as follows.
+a) Number of Unknown Slots (M): M = 2 is the optimal
+configuration (F1=0.721); M = 1 degrades substantially to
+0.697 (−2.4pp), while M = 4 yields no further improvement
+(0.711). This indicates that two slots are sufficient to cover
+the spatial diversity of unknown regions on a single slice, and
+additional slots introduce redundancy.
+b) Number of Prototype Spheres (R): R = 1 (single
+prototype) causes simultaneous declines in both known mIoU
+and unknown F1 (mIoU −1.1pp, F1 −5.1pp); R = 4 shows
+no appreciable improvement over R = 2. This validates the
+effectiveness of R = 2 in covering the bimodal distribution of
+organ slice positions.
+c) Loss Function: Removing Lball causes the largest drop
+in unknown F1 (−5.9pp) as well as a 1.4pp decrease in known
+mIoU, indicating that geometric constraints benefit not only
+unknown determination but also have an indirect positive effect
+on known-class representation quality. Removing Lboundary has
+negligible impact on F1 (+0.3pp) but shifts precision from
+0.775 to 0.796 and recall from 0.674 to 0.664, suggesting
+that this term primarily modulates the precision–recall trade-
+off rather than significantly altering overall F1 in the current
+Page 10 of 19
+
+===== PAGE 11 =====
+STRUCTURED ABSTENTION
+9
+TABLE II
+COMPARISON OF DIFFERENT UNKNOWN DECISION SIGNALS UNDER THE SYNAPSE A1 AND A2 PROTOCOLS. ALL METHODS SHARE THE SAME TRAINED
+MODEL (M = 2), WITH ONLY THE UNKNOWN DECISION SIGNAL REPLACED. A1 REPORTS KNOWN MIOU, UNKNOWN F1, UNKNOWN IOU, PRECISION,
+AND RECALL AS MEAN±STD ACROSS THREE SEEDS; A2 REPORTS AUROC AND AUPR FROM A SINGLE RUN.
+A1: Seen-Unknown Structured Abstention
+A2: Unseen-Unknown Detection
+Method
+Known mIoU
+Unknown F1
+Unknown IoU
+Precision
+Recall
+AUROC ↑
+AUPR ↑
+Support (ours)
+0.807±.004
+0.711±.009
+0.552±.011
+0.768±.026
+0.663±.026
+0.771
+0.230
+MSP
+0.807±.003
+0.711±.010
+0.552±.012
+0.769±.027
+0.663±.026
+0.959
+0.086
+Energy
+0.807±.003
+0.711±.010
+0.552±.012
+0.769±.027
+0.663±.026
+0.970
+0.063
+Uunion
+0.807±.003
+0.717±.009
+0.559±.011
+0.758±.020
+0.681±.018
+0.907
+0.040
+Ensemble
+0.807±.003
+0.715±.009
+0.556±.011
+0.763±.026
+0.673±.023
+0.971
+0.088
+MC-Dropout
+—
+—
+—
+—
+—
+0.753
+0.006
+TABLE III
+STRUCTURAL ABLATION ON SYNAPSE A1. BASELINE IS THE DEFAULT
+CONFIGURATION (M = 2, R = 2, FULL LOSS, NO-OBJECT MECHANISM
+ENABLED). EACH ROW MODIFIES ONE VARIABLE.
+Setting
+Known mIoU
+Unknown F1
+Baseline (M = 2, R = 2)
+0.811
+0.721
+M = 1
+0.814
+0.697
+M = 4
+0.810
+0.711
+R = 1
+0.800
+0.670
+R = 4
+0.812
+0.713
+w/o Lball
+0.797
+0.662
+w/o Lboundary
+0.813
+0.724
+w/o no-object
+0.814
+0.709
+TABLE IV
+M = 0 ABLATION: CAN POST-HOC SIGNALS SUBSTITUTE FOR
+STRUCTURED ABSTENTION AFTER REMOVING NATIVE UNKNOWN
+QUERIES? SYNAPSE A1 PROTOCOL. ‘---’ INDICATES THE METRIC IS NOT
+APPLICABLE OR NOT REPORTED FOR THAT SETTING.
+Setting
+Known mIoU Unknown F1 AUROCfg
+M = 2 + Uunion
+0.809
+0.728
+—
+M = 2 + Support
+0.811
+0.721
+—
+M = 0 + MSP
+0.782
+0.070
+0.965
+M = 0 + Prototype-sphere
+0.791
+0.008
+0.562
+setting. Removing the no-object mechanism leads to a modest
+F1 decline of 1.2pp.
+2) M = 0 Core Ablation: Necessity of Native Unknown
+Queries: Table IV reports results after completely removing
+unknown queries (M = 0), which constitutes the most critical
+ablation experiment of this paper.
+The results are decisive. Upon removing unknown queries,
+unknown F1 collapses catastrophically from 0.721–0.728 to
+0.008–0.070 (a reduction exceeding 90%), while known mIoU
+decreases by only approximately 2%. Notably, M = 0 + MSP
+still achieves a pixel-level AUROC of 0.965, demonstrating
+that post-hoc signals remain effective at pixel-level ranking—
+but they cannot translate this ranking capability into spatially
+coherent unknown masks.
+This ablation directly demonstrates that, within our
+framework, post-hoc signals alone are insufficient to sub-
+stitute for an explicit unknown output space after unknown
+queries are removed. Combined with the independent base-
+line comparison in Section V-B, it can be seen that the truly
+critical factor in A1 is whether an explicit unknown output
+space is reserved, not merely whether a query-based or per-
+pixel implementation is adopted.
+a) Split Robustness Validation: To verify whether the
+above conclusions depend on a particular seen/unseen class
+partition, we construct an alternative split (alt-split): one
+pathological class from the original unseen side (liver tumor,
+label 12) is moved to the seen side, while one anatomical class
+from the original seen side (pancreas, label 11) is moved to the
+unseen side, deliberately crossing the semantic boundary of the
+original split. Under this alternative split, the same collapse
+pattern remains: unknown F1 still drops by more than 94%
+after removing native unknown queries, while known mIoU
+remains stable. The full table is provided in the supplementary
+material. This demonstrates that the mechanism revealed by
+the M = 0 ablation—that removing unknown queries causes
+structured abstention capability to collapse—is not contingent
+on any particular class partition scheme.
+Qualitative comparisons between M = 2 and M = 0 are
+also provided in the supplementary material and show the same
+fragmentation pattern for post-hoc outputs.
+F. Cross-Dataset Validation: AMOS22
+To validate the cross-dataset consistency of the core conclu-
+sions, we reproduce three key experiments on the AMOS22
+CT subset: A1, A2, and the M = 0 ablation. The CT-only
+setting is used, with annotated CT training and validation
+sets comprising 200 and 100 cases, respectively; AMOS22
+results are from independent training followed by validation
+set evaluation, not merely used as a validation split. AMOS22
+contains 15-class organ annotations, split as K = 8 (known)
+/ 4 (seen unknown) / 3 (unseen unknown).
+Table V summarizes the cross-dataset comparison results.
+All three core conclusions hold across datasets. AMOS22
+A1 achieves unknown F1 of 0.839 (even higher than Synapse’s
+0.721) while maintaining known mIoU at 0.838, confirming
+effective structured abstention on a larger-scale dataset. In A2,
+Page 11 of 19
+
+===== PAGE 12 =====
+10
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+TABLE V
+CROSS-DATASET COMPARISON BETWEEN SYNAPSE AND AMOS22. ALL
+THREE CORE CONCLUSIONS ARE CONSISTENT ACROSS BOTH
+INDEPENDENT DATASETS. --- INDICATES THE METRIC IS NOT
+APPLICABLE OR NOT REPORTED FOR THAT SETTING.
+Experiment
+Dataset
+mIoUK
+F1U
+IoUU
+PrecU
+RecU
+AUROCfg
+A1
+Synapse
+0.811
+0.721
+0.564
+0.775
+0.674
+—
+AMOS22
+0.838
+0.839
+0.723
+0.848
+0.831
+—
+A2 (Ens.)
+Synapse
+0.797
+0.006
+0.003
+—
+—
+0.971
+AMOS22
+0.827
+0.010
+0.005
+0.006
+0.025
+0.990
+M =0+MSP
+Synapse
+0.782
+0.070
+—
+—
+—
+0.965
+AMOS22
+0.814
+0.045
+0.023
+0.059
+0.037
+0.983
+M =0+Sph.
+Synapse
+0.791
+0.008
+—
+—
+—
+0.562
+AMOS22
+0.816
+0.017
+0.009
+0.077
+0.010
+0.780
+AMOS22 Ensemble AUROCfg reaches 0.990 yet unknown F1
+is only 0.010, entirely consistent with the Synapse trend, con-
+firming that the detection–structuring gap is not an incidental
+artifact. The M = 0 ablation is also cross-dataset confirmed:
+removing unknown queries causes F1 to collapse from 0.839
+to 0.045 (MSP) / 0.017 (Sphere) on AMOS22, reductions
+of 94.6% and 98.0% respectively, validating the necessity of
+native unknown queries on two independent datasets.
+G. Cross-Domain Generalization Beyond Medical CT
+The experiments above establish the main results in medical
+CT, our primary high-risk application domain. A central ques-
+tion, however, is whether the two core phenomena—the ne-
+cessity of native unknown slots and the detection–structuring
+gap—are CT-specific or instead reflect more general properties
+of open-world dense segmentation. To answer this question
+directly, we reproduce the minimal set of experiments (A1
++ M=0 ablation, and A2) on two natural-image benchmarks
+with visual characteristics markedly different from abdominal
+CT. We do not reproduce the full ablation suite or conduct
+baseline comparisons on these datasets; their role is to test
+the scope of the claim, namely whether the core mechanisms
+identified in the medical setting remain directionally consistent
+across domains.
+1) Datasets and Protocol Splits: We use the standard
+PASCAL VOC 2012 split (1,464 training / 1,449 validation
+images) and the standard Cityscapes fine-annotation split
+(2,975 training / 500 validation images) [35], [36]. For both
+datasets, known/seen-unseen assignments are chosen by the
+same semantic-grouping principle used in the medical exper-
+iments, and dataset-internal ignore labels are excluded from
+unknown evaluation. The exact class splits are provided in the
+supplementary material.
+2) Native Unknown Slot Necessity Across Domains: Ta-
+ble VI reports A1 and M=0 ablation results on both natural-
+image datasets.
+On both datasets, the M=0 ablation produces the same
+collapse pattern observed on Synapse and AMOS22. On VOC,
+unknown F1 drops from 0.813 to 0.027 under MSP and
+to 0.000 under Prototype-sphere, reductions of 96.7% and
+100% respectively. On Cityscapes, the drop is from 0.737 to
+0.024 (MSP, −96.8%) and 0.000 (Sphere). Crucially, MSP
+retains strong pixel-level AUROC (0.934 on VOC, 0.956 on
+TABLE VI
+A1 STRUCTURED ABSTENTION AND M=0 ABLATION ON PASCAL VOC
+AND CITYSCAPES. NATIVE UNKNOWN SLOTS ARE NECESSARY FOR
+STRUCTURED ABSTENTION IN BOTH NATURAL-IMAGE SETTINGS:
+REMOVING THEM (M=0) COLLAPSES UNKNOWN F1 BY OVER 96%, EVEN
+WHEN THE REPLACEMENT SCORING SIGNAL (MSP) RETAINS STRONG
+PIXEL-LEVEL RANKING (AUROC > 0.93).
+Dataset
+Setting
+mIoUK
+F1U
+AUROCfg
+VOC
+A1 (M=2)
+0.780
+0.813
+—
+M=0 + MSP
+0.627
+0.027
+0.934
+M=0 + Sphere
+0.649
+0.000
+0.698
+City.
+A1 (M=2)
+0.642
+0.737
+—
+M=0 + MSP
+0.590
+0.024
+0.956
+M=0 + Sphere
+0.592
+0.000
+0.473
+TABLE VII
+A2 DETECTION–STRUCTURING GAP ON PASCAL VOC AND CITYSCAPES.
+HIGH ENSEMBLE AUROC (>0.95) COEXISTS WITH NEAR-ZERO
+UNKNOWN F1 ON BOTH DATASETS, MIRRORING THE PATTERN OBSERVED
+ON SYNAPSE AND AMOS22.
+Dataset
+AUROCfg
+AUPRfg
+FPR@95
+F1U
+IoUU
+VOC
+0.970
+0.671
+0.070
+0.002
+0.001
+Cityscapes
+0.956
+0.208
+0.212
+0.022
+0.011
+Cityscapes), demonstrating that the collapse is not caused by
+a failure of the scoring signal to rank unknown pixels—the
+signal can still rank them well—but by the absence of a
+native structured output slot to aggregate those pixels into
+coherent regions. Known mIoU decreases moderately under
+M=0 (−0.153 on VOC, −0.052 on Cityscapes), similar in
+pattern to the medical experiments. These results confirm that
+the necessity of native unknown slots for structured abstention
+is a domain-general property, not a CT-specific artifact.
+3) Detection–Structuring Gap Across Domains: Table VII
+reports A2 detection and structuring metrics on both natural-
+image datasets.
+On both datasets, ensemble AUROC exceeds 0.95—
+indicative of a strong detection ranking signal—yet unknown
+F1 remains near zero (0.002 on VOC, 0.022 on Cityscapes).
+This mirrors the pattern on Synapse (AUROC 0.971, F1 0.006)
+and AMOS22 (AUROC 0.990, F1 0.010): in all four cases the
+detection ranking signal is far ahead of what would be needed
+to form a usable structured abstention output. On Cityscapes,
+the lower AUPR (0.208) and higher FPR@95 (0.212) reflect
+the greater class complexity and fine-grained boundary density
+of urban scenes; nevertheless, the detection–structuring gap
+remains just as pronounced. These results confirm that the
+gap is not a property of any particular imaging domain but
+a fundamental challenge in translating detection signals into
+structured outputs.
+H. In-Depth Analysis
+Extended score-distribution evidence, retrieval analysis, and
+exploratory mitigation experiments are deferred to the supple-
+mentary material to keep the main paper focused on the core
+result chain; those analyses are consistent with the A2 findings
+reported here—classification uncertainty signals provide useful
+ranking information, but this ranking advantage does not by
+itself yield usable structured abstention outputs. The following
+Page 12 of 19
+
+===== PAGE 13 =====
+STRUCTURED ABSTENTION
+11
+region-level candidate analysis is retained in the main paper
+because it directly identifies the bottleneck that explains this
+gap.
+1) A2 Region-Level Candidate Analysis: To further di-
+agnose the bottleneck of A2 structured abstention failure,
+we conduct a region-level analysis of the candidate regions
+generated by unknown queries. Across 50 slices containing
+unseen unknowns in A2:
+• 66% of unknown-containing slices have at least one
+candidate region that overlaps with the ground truth;
+• However, the unknown-slice hit rate at IoU≥0.10 is only
+2%;
+• For larger connected components (≥32 pixels), the hit
+rate at IoU≥0.10 is 0%;
+• Candidate regions have 253,365 total pixels, while
+ground-truth unknown regions have only 13,616 pixels
+total; the candidate union IoU mean is only 0.005.
+These results reveal the true bottleneck of A2 structured ab-
+stention: the problem lies not in the final decision step, but
+in candidate generation itself. Although unknown queries
+produce coarse responses in A2, the generated candidate
+regions have almost no meaningful spatial alignment with
+the ground truth (union IoU=0.005, IoU≥0.10 near zero).
+Consequently, even a perfect region-level classifier cannot
+recover effective unknown masks from these candidates. This
+finding shifts the structuring bottleneck in A2 from “how to
+make decisions” to the more fundamental “how to generate
+clean candidates,” pointing the way for future research. Addi-
+tional exploratory mitigation results are also provided in the
+supplementary material; they further support the conclusion
+that the unresolved difficulty in A2 lies primarily in candidate
+generation rather than in downstream thresholding alone.
+VI. CONCLUSION AND FUTURE WORK
+This paper addresses unknown handling in open-world
+dense segmentation by proposing the Structured Abstention
+Segmentation (SASeg) formulation and constructing an A1/A2
+dual-protocol evaluation framework that distinguishes seen-
+unknown structuring capability from unseen-unknown detec-
+tion generalization capability. Methodologically, we present a
+region parsing model with native unknown slots, combined
+with prototype-sphere support to model the geometric support
+boundaries of known classes. Across four datasets spanning
+medical and natural-image domains, the results show that
+an explicit unknown output space is important for structured
+abstention relative to purely post-hoc OoD approaches, while
+in the unseen-unknown setting high detection ranking per-
+formance still does not imply usable structured outputs and
+candidate purity remains the dominant bottleneck. Medical
+CT serves here as the principal motivating and high-risk
+stress-test domain, while the additional PASCAL VOC and
+Cityscapes results indicate that both the necessity of native un-
+known representation and the detection–structuring gap reflect
+more general properties of open-world dense segmentation
+rather than CT-specific behavior. The primary contribution
+of this work lies not in proposing a detector that surpasses
+all baselines across every metric, but in establishing the
+problem formulation and evaluation framework for structured
+abstention, and in characterizing the critical boundary between
+detection and structuring in dense prediction under open-world
+conditions.
+Our results suggest that the main obstacle in unseen-
+unknown structured abstention is not the lack of a useful
+ranking signal, but the difficulty of generating candidate
+regions with sufficient spatial purity. This shifts the design
+target for future work: further gains are more likely to come
+from better candidate-generation or proposal-to-mask mecha-
+nisms than from stronger thresholding or score fusion alone.
+More broadly, the experiments support evaluating detection
+and structuring as separate capabilities, because the two can
+succeed or fail for different reasons.
+This study also has several limitations. Although the main
+trends are consistent across Synapse, AMOS22, PASCAL
+VOC, and Cityscapes, we have not yet validated the framework
+on additional medical modalities such as MRI or ultrasound,
+nor on other dense prediction tasks such as panoptic or
+instance segmentation. Synapse is also relatively small, and
+its reported results rely on a 4-case validation split; while the
+consistency on AMOS22 and under the alternative Synapse
+split reduces concern about idiosyncratic partitioning, broader
+multi-split and external validation is still needed. Finally, the
+exploratory results indicate where the A2 bottleneck lies, but
+do not yet provide a complete solution for converting separable
+proposal-level cues into high-quality abstention masks.
+REFERENCES
+[1] Q. Zhao, L. Zhong, J. Xiao, J. Zhang, Y. Chen, W. Liao, S. Zhang,
+and G. Wang, “Efficient multi-organ segmentation from 3d abdominal
+CT images with lightweight network and knowledge distillation,” IEEE
+Trans. Med. Imaging, 2023.
+[2] R. A. Zeineldin, M. E. Karar, O. Burgert, and F. Mathis-Ullrich,
+“Multimodal CNN networks for brain tumor segmentation in MRI:
+A BraTS 2022 challenge solution,” in BrainLes: Glioma, Multiple
+Sclerosis, Stroke and Traumatic Brain Injuries, ser. Lecture Notes in
+Computer Science, vol. 13769.
+Cham: Springer, 2023.
+[3] B. Kompa, J. Snoek, and A. Beam, “Second opinion needed: Communi-
+cating uncertainty in medical machine learning,” npj Digit. Med., 2021.
+[4] S. Li, M. Yuan, X. Dai, and C. Zhang, “Evaluation of uncertainty
+estimation methods in medical image segmentation: Exploring the
+usage of uncertainty in clinical deployment,” Comput. Medical Imaging
+Graph., 2025.
+[5] G. Andrade-Miranda, P. J. S. Vega, K. Taguelmimt, H.-P. Dang,
+D. Visvikis, and J. Bert, “Exploring transformer reliability in clinically
+significant prostate cancer segmentation: A comprehensive in-depth
+investigation,” Comput. Medical Imaging Graph., 2024.
+[6] D. Hendrycks and K. Gimpel, “A baseline for detecting misclassified and
+out-of-distribution examples in neural networks,” in Int. Conf. Learn.
+Represent., 2017.
+[7] W. Liu, X. Wang, J. D. Owens, and Y. Li, “Energy-based out-of-
+distribution detection,” Adv. Neural Inf. Process. Syst., 2020.
+[8] Y. Gal and Z. Ghahramani, “Dropout as a bayesian approximation:
+Representing model uncertainty in deep learning,” in Proc. 33rd Int.
+Conf. Mach. Learn., 2016.
+[9] M. Grcic, J. Saric, and S. Segvic, “On advantages of mask-level
+recognition for outlier-aware segmentation,” in Proc. IEEE/CVF Conf.
+Comput. Vis. Pattern Recognit. Workshops, 2023.
+[10] A. Bendale and T. E. Boult, “Towards open set deep networks,” in Proc.
+IEEE Conf. Comput. Vis. Pattern Recognit., 2016.
+[11] G. Chen, P. Peng, X. Wang, and Y. Tian, “Adversarial reciprocal points
+learning for open set recognition,” IEEE Trans. Pattern Anal. Mach.
+Intell., 2022.
+[12] D.-W. Zhou, H.-J. Ye, and D.-C. Zhan, “Learning placeholders for
+open-set recognition,” in Proc. IEEE/CVF Conf. Comput. Vis. Pattern
+Recognit., 2021.
+Page 13 of 19
+
+===== PAGE 14 =====
+12
+IEEE TRANSACTIONS ON ARTIFICIAL INTELLIGENCE, VOL. 00, NO. 00, MONTH 202X
+[13] R. He, Z. Han, X. Lu, and Y. Yin, “RONF: Reliable outlier synthesis
+under noisy feature space for out-of-distribution detection,” in Proc. 30th
+ACM Int. Conf. Multimedia, 2022, pp. 4242–4251.
+[14] Y. Ming, Z. Cai, J. Gu, Y. Sun, W. Li, and Y. Li, “Delving into out-of-
+distribution detection with vision-language representations,” Adv. Neural
+Inf. Process. Syst., 2022.
+[15] J. Yang, K. Zhou, Y. Li, and Z. Liu, “Generalized out-of-distribution
+detection: A survey,” Int. J. Comput. Vis., 2024.
+[16] G. D. Bernardi, S. Narteni, E. Cambiaso, and M. Mongelli, “Rule-based
+out-of-distribution detection,” IEEE Trans. Artif. Intell., vol. 5, no. 6,
+pp. 2627–2637, 2024.
+[17] A. Gupta, S. Narayan, K. J. Joseph, S. H. Khan, F. Khan, and M. Shah,
+“OW-DETR: Open-world detection transformer,” in Proc. IEEE/CVF
+Conf. Comput. Vis. Pattern Recognit., 2022.
+[18] R. Fang, G. Pang, L. Zhou, X. Bai, and J. Zheng, “Unsupervised
+recognition of unknown objects for open-world object detection,” arXiv
+preprint arXiv:2308.16527, 2023.
+[19] J. Wang, B. Chen, B. Kang, Y. Li, W. Xian, Y. Chen, and Y. Xu, “OV-
+DQUO: Open-vocabulary DETR with denoising text query training and
+open-world unknown objects supervision,” in Proc. AAAI Conf. Artif.
+Intell., vol. 39, no. 7, 2025, pp. 7762–7770.
+[20] D. Zimmerer, P. Full, F. Isensee, P. F. Jager, T. Adler, J. Petersen,
+G. Koehler, T. Ross, A. Reinke, A. Kascenas, B. S. Jensen, A. Q.
+O’Neil, J. Tan, B. Hou, J. Batten, H. Qiu, B. Kainz, N. Shvetsova,
+I. Fedulova, D. Dylov, B. Yu, J. Zhai, J. Hu, R. Si, S. Zhou, S. Wang,
+X. Li, X. Chen, Y. Zhao, S. N. Marimont, G. Tarroni, V. Saase, L. Maier-
+Hein, and K. H. Maier-Hein, “MOOD 2020: A public benchmark for
+out-of-distribution detection and localization on medical images,” IEEE
+Trans. Med. Imaging, 2022.
+[21] C. Baur, S. Denner, B. Wiestler, S. Albarqouni, and N. Navab, “Autoen-
+coders for unsupervised anomaly segmentation in brain MR images: A
+comparative study,” Med. Image Anal., 2021.
+[22] M. Bengs, F. Behrendt, J. Kruger, R. Opfer, and A. Schlaefer, “Three-
+dimensional deep learning with spatial erasing for unsupervised anomaly
+segmentation in brain MRI,” Int. J. Comput. Assist. Radiol. Surg., 2021.
+[23] K. Rashmi, A. Das, M. N. Gayathri, K. Ram, and M. Sivaprakasam,
+“Ano-swinMAE: Unsupervised anomaly detection in brain MRI using
+swin transformer-based masked autoencoder,” in Proc. 7th Int. Conf.
+Med. Imaging Deep Learn., ser. Proc. Mach. Learn. Res., vol. 250, 2024,
+pp. 1221–1236.
+[24] B. Lambert, F. Forbes, A. Tucholka, S. Doyle, H. Dehaene, and M. Do-
+jat, “Trustworthy clinical AI solutions: A unified review of uncertainty
+quantification in deep learning models for medical image analysis,” Artif.
+Intell. Med., 2024.
+[25] T. Musah, C. Kalaiwo, M. Akram, U. N. Abdulai, M. Adewole, F. Dako,
+A. C. Emegoakor, U. C. Anazodo, P. E. Adjei, and C. Raymond,
+“Towards trustworthy breast tumor segmentation in ultrasound using
+monte carlo dropout and deep ensembles for epistemic uncertainty
+estimation,” arXiv preprint arXiv:2508.17768, 2025.
+[26] P. Tang, P. Yang, D. Nie, X. Wu, J. Zhou, and Y. Wang, “Unified
+medical image segmentation by learning from uncertainty in an end-
+to-end manner,” Knowl.-Based Syst., vol. 241, p. 108215, 2022.
+[27] D. Karimi and A. Gholipour, “Improving calibration and out-of-
+distribution detection in deep models for medical image segmentation,”
+IEEE Trans. Artif. Intell., vol. 4, no. 2, pp. 383–397, 2023.
+[28] Y. Geifman and R. El-Yaniv, “SelectiveNet: A deep neural network with
+an integrated reject option,” in Int. Conf. Mach. Learn., 2019.
+[29] B. Cheng, A. G. Schwing, and A. Kirillov, “Per-pixel classification is
+not all you need for semantic segmentation,” Adv. Neural Inf. Process.
+Syst., 2021.
+[30] J. He, P. Li, Y. Geng, and X. Xie, “FastInst: A simple query-based model
+for real-time instance segmentation,” in Proc. IEEE/CVF Conf. Comput.
+Vis. Pattern Recognit., 2023.
+[31] F. Li, H. Zhang, H. Xu, S. Liu, L. Zhang, L. Ni, and H. Shum,
+“Mask DINO: Towards a unified transformer-based framework for object
+detection and segmentation,” in Proc. IEEE/CVF Conf. Comput. Vis.
+Pattern Recognit., 2023.
+[32] Y. Zhu, C. Shi, D. Wang, J. Tang, Z. Wei, Y. Wu, G. Li, and S. Yang,
+“Rethinking query-based transformer for continual image segmentation,”
+in Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit., 2025.
+[33] J. Chen, Y. Lu, Q. Yu, X. Luo, E. Adeli, Y. Wang, L. Lu, A. L. Yuille, and
+Y. Zhou, “TransUNet: Transformers make strong encoders for medical
+image segmentation,” arXiv preprint arXiv:2102.04306, 2021.
+[34] H. Cao, Y. Wang, J. Jiang, D. Zhang, Q. Tian, M.-M. Cheng, and
+J. Wang, “Swin-Unet: Unet-like pure transformer for medical image
+segmentation,” arXiv preprint arXiv:2105.05537, 2022.
+[35] M. Everingham, L. V. Gool, C. K. I. Williams, J. Winn, and A. Zis-
+serman, “The PASCAL visual object classes (VOC) challenge,” Int. J.
+Comput. Vis., vol. 88, no. 2, pp. 303–338, 2010.
+[36] M. Cordts, M. Omran, S. Ramos, T. Rehfeld, M. Enzweiler, R. Benen-
+son, U. Franke, S. Roth, and B. Schiele, “The Cityscapes dataset for
+semantic urban scene understanding,” in Proc. IEEE Conf. Comput. Vis.
+Pattern Recognit., 2016, pp. 3213–3223.
+Page 14 of 19
+
+===== PAGE 15 =====
+Page 15 of 19
+
+===== PAGE 16 =====
+Page 16 of 19
+
+===== PAGE 17 =====
+Page 17 of 19
+
+===== PAGE 18 =====
+Page 18 of 19
+
+===== PAGE 19 =====
+Page 19 of 19

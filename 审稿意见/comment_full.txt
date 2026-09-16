@@ -1,0 +1,77 @@
+
+===== PAGE 1 =====
+Referee’s report of IEEE TAI manuscript
+#TAI-2026-Apr-A-00756
+Summary
+This paper studies open-world dense segmentation, where a deployed segmentation model
+may encounter image regions that do not belong to any of the known training classes. The
+authors argue that unknown handling in dense prediction should not be treated only as
+post-hoc pixel-level uncertainty thresholding. Instead, the model should produce coherent
+abstention regions as part of its structured segmentation output. To this end, the paper
+formulates Structured Abstention Segmentation (SASeg), introduces native unknown query
+slots in a Transformer-based region parser, and adds a prototype-sphere support module for
+judging whether candidate regions fall inside the support of known classes. The paper also
+proposes two evaluation protocols: A1 for seen-unknown structured abstention and A2 for
+unseen-unknown detection generalization. Experiments are reported on Synapse, AMOS22,
+PASCAL VOC, and Cityscapes.
+I find the main idea interesting and timely. The distinction between detecting unknown
+pixels and structuring them into usable unknown masks is important, and the paper provides
+useful evidence that high pixel-level AUROC does not necessarily imply useful structured
+abstention. At the same time, the current empirical results also show important limitations:
+the method relies on seen-unknown supervision, the A2 structured outputs remain nearly
+unusable, and the inference procedure still depends heavily on thresholding. These issues
+should be clarified before the contribution can be properly assessed.
+Major comment
+• The supervision setting and the required training data for the unknown class should
+be stated more explicitly. The method requires annotations for seen unknown classes,
+which are collapsed into a generic unknown mask during training. This is a reasonable
+setting, but it means SASeg is better described as supervised structured abstention
+with unseen-unknown generalization, rather than generic unknown discovery.
+The
+1
+
+===== PAGE 2 =====
+paper should discuss how such seen-unknown masks would be obtained in realistic
+applications and provide the exact class splits more prominently.
+• The A2 results reveal a severe limitation that should be reflected more carefully in the
+claims. Across all four datasets, the detection scores can be high while the unknown
+F1 and IoU are almost zero. The region-level candidate analysis usefully shows that
+candidate purity is the bottleneck, but it also shows that the method does not yet
+solve structured abstention for truly unseen unknowns. The paper should present A2
+primarily as a diagnostic setting, or provide a stronger method for A2 mask generation.
+• The paper criticizes post-hoc thresholding, but the final inference procedure still relies
+heavily on thresholded scores. In A1, the decision thresholds support and unknown-
+query responses; in A2, it thresholds an ensemble anomaly score.
+Since the cen-
+tral message is that thresholding detection scores is insufficient for structured ab-
+stention, the authors should evaluate alternatives that more directly optimize struc-
+tured mask quality. For example, RankSeg-style Dice/IoU-oriented decoders (https:
+//github.com/rankseg/rankseg) could help test whether the poor A2 F1/IoU is
+mainly caused by the post-hoc thresholding pipeline, or instead reflects the intrinsic
+difficulty of generating clean unseen-unknown candidates. Other useful comparisons
+could include Mask2Former- or Mask DINO-style K +1 baselines, region-level proposal
+ranking, and simple mask-refinement methods.
+• The baseline results should be discussed more carefully. In Table I, the independently
+trained per-pixel K + 1 segmenter obtains an unknown F1 of 0.797 on Synapse A1,
+whereas SASeg obtains 0.721. This suggests that reserving an explicit unknown output
+space may be more important than the specific query-based architecture or prototype-
+sphere module. The authors should either reposition the contribution accordingly or
+provide stronger controlled comparisons, such as query-based K + 1 and MaskFormer-
+style K + 1 baselines.
+Minor comments
+• Please provide a clear table of the known, seen-unknown, and unseen-unknown class
+splits for each dataset, and describe precisely how the binary unknown training mask
+is constructed from the seen-unknown classes.
+2
+
+===== PAGE 3 =====
+• Some implementation and inference details should be easier to follow, including the su-
+pervision of the background/no-object queries, the distinction between the “Support”
+path and Uunion, and the validation procedure used to choose the A2 ensemble weights.
+• More qualitative visualizations would be helpful, especially for A2. Showing successful
+and failed unknown-query candidates would make the detection–structuring gap much
+more concrete.
+• The computational cost of SASeg should be reported, including training time, inference
+time, memory usage, and the overhead of the prototype-sphere support module relative
+to simpler K + 1 segmentation baselines.
+3
