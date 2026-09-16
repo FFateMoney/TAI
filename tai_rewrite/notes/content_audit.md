@@ -20,6 +20,14 @@ Audit target: `tai_rewrite/main.tex` + `supplementary.tex`, checked against the 
 - Backbone-comparison values match the complement manuscript.
 - The claim hierarchy is consistent: A1 is a supervised control; A2 is the main scientific setting; candidate generation is the intervention target; scoring is retained as a selector rather than dismissed as useless.
 
+## Visual/LaTeX audit fixes
+
+- Added `xspace` handling for the `CCG` macro so prose no longer renders as `CCGis` / `CCGassumes`.
+- Constrained the single-column diagnostic/candidate tables to `\columnwidth` and the full-system table to `\textwidth`, removing the observed cross-column overflow.
+- Added a float barrier before Discussion so the qualitative figure cannot drift behind the References section.
+- Removed the empty bibliography from the supplementary material; the first compiled version otherwise produced a mostly empty fourth page containing only `References`.
+- A GitHub Actions compile workflow now produces the main and supplementary PDFs plus LaTeX logs for repeatable checking.
+
 ## Remaining content-completeness blockers (do not invent)
 
 1. **Exact construction of `M_fg`** — The archived complement manuscript only calls it the image foreground used by the pipeline; it does not specify a reproducible operational construction in the manuscript text available in this repository.
