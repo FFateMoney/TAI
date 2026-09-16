@@ -62,7 +62,7 @@ Cityscapes & 64 & 0.80 & 0.10 \\
 \end{table}
 
 \section{Prompt-Form Ablation}
-The completed prompt-form diagnostic compared direct negation, generic concept prompts, enumeration-then-complement, and negative exemplars. Enumeration-then-complement was the only form that consistently produced a non-trivial structural signal.
+The completed prompt-form diagnostic compared four variants: direct negation, generic concept prompts, enumeration followed by complement construction, and negative exemplars. The enumeration-plus-complement form was the only variant that consistently produced a non-trivial structural signal.
 \begin{table}[h]
 \centering
 \caption{Existing prompt-form diagnostic. UMR denotes unknown-mask recall on the prompt diagnostic subset.}
@@ -108,7 +108,7 @@ On the VOC diagnostic subset, known-union IoU is 0.6956, complement IoU is 0.888
 
 \section{Interpretive Guardrails}
 The rewritten paper adopts the following restrictions on its claims:
-\begin{itemize}[leftmargin=*]
+\begin{itemize}[leftmargin=*,nosep]
   \item A1 is a supervised seen-unknown control, not an unseen-category discovery protocol.
   \item Native unknown queries are not claimed to be necessary; the $K+1$ baseline is explicitly acknowledged as stronger on Synapse A1.
   \item Diagnostic and complement-study baselines are not numerically merged when their evaluator provenance differs.
