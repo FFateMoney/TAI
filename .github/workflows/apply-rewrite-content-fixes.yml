@@ -1,0 +1,33 @@
+name: Apply rewrite content-audit fixes
+
+on:
+  push:
+    branches:
+      - rewrite/detection-to-structuring
+    paths:
+      - 'tai_rewrite/tools/apply_content_audit_fixes.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rewrite/detection-to-structuring
+      - name: Apply audited text fixes
+        run: python tai_rewrite/tools/apply_content_audit_fixes.py
+      - name: Commit fixes
+        run: |
+          if git diff --quiet -- tai_rewrite/main.tex tai_rewrite/references_additions.bib; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tai_rewrite/main.tex tai_rewrite/references_additions.bib
+          git commit -m 'Fix content consistency and metric provenance'
+          git push origin HEAD:rewrite/detection-to-structuring
