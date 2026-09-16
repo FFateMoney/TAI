@@ -1,0 +1,53 @@
+name: Compile rewritten TAI manuscript
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rewrite/detection-to-structuring
+    paths:
+      - 'tai_rewrite/**'
+      - '.github/workflows/compile-rewrite.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage IEEE TAI class
+        run: cp saseg_paper/IEEEtai.cls tai_rewrite/IEEEtai.cls
+
+      - name: Compile main manuscript
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: tai_rewrite
+          latexmk_use_xelatex: false
+          args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+
+      - name: Compile supplementary material
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: supplementary.tex
+          working_directory: tai_rewrite
+          latexmk_use_xelatex: false
+          args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+
+      - name: Upload PDFs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tai-rewrite-compile
+          if-no-files-found: warn
+          path: |
+            tai_rewrite/main.pdf
+            tai_rewrite/main.log
+            tai_rewrite/main.blg
+            tai_rewrite/supplementary.pdf
+            tai_rewrite/supplementary.log
+            tai_rewrite/supplementary.blg
