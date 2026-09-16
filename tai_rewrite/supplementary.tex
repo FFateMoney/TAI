@@ -1,0 +1,119 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage[colorlinks,urlcolor=blue,linkcolor=blue,citecolor=blue]{hyperref}
+\graphicspath{{../complement_paper/fig/}{../saseg_paper/}}
+
+\title{Supplementary Material for\\From Unknown Detection to Structured Unknown Segmentation:\\Zero-Shot Candidate Generation for Open-World Dense Prediction}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Scope and Evidence Reuse}
+The rewritten manuscript is intentionally based on already completed experiments. No new training run or new evaluation run is introduced in this revision. Results inherited from the original structured-abstention study are used for diagnosis; results inherited from the complement-candidate study are used for the candidate intervention and full-system comparisons. Because the two projects used slightly different evaluation code paths for VOC and Cityscapes, their absolute baseline values are not mixed in a single load-bearing comparison. The main-paper complement tables use the internally consistent baseline and intervention numbers from the complement study.
+
+\section{Dataset Partitions}
+\subsection{Synapse Multi-Organ CT}
+The existing protocol uses $K=8$ known classes, three seen-unknown classes, and two unseen-unknown classes. The known classes are spleen, right kidney, left kidney, gallbladder, esophagus, liver, stomach, and aorta. The seen unknowns are hepatic vein, adrenal gland, and pancreas. The unseen unknowns are liver tumor and kidney cyst. Seen-unknown pixels are collapsed into a generic unknown target during training; unseen-unknown labels are withheld from training.
+
+\subsection{AMOS22}
+AMOS22 uses eight known classes, four seen unknowns, and three unseen unknowns. The known classes are spleen, right kidney, left kidney, gallbladder, liver, stomach, aorta, and pancreas. The seen unknowns are esophagus, postcava, duodenum, and bladder. The unseen unknowns are right adrenal gland, left adrenal gland, and prostate/uterus.
+
+\subsection{PASCAL VOC 2012}
+The known classes are aeroplane, bicycle, bird, boat, bottle, bus, car, cat, chair, cow, diningtable, dog, horse, person, and pottedplant. The seen unknowns are sheep, sofa, and train. The unseen unknowns are motorbike and tvmonitor. The complement study evaluates the frozen VOC A2 checkpoint on the standard 1,449-image validation split.
+
+\subsection{Cityscapes}
+The known classes are road, sidewalk, building, wall, fence, pole, traffic light, traffic sign, vegetation, terrain, sky, car, person, and rider. The seen unknowns are truck, bus, and train. The unseen unknowns are motorcycle and bicycle. Dataset-internal void/ignore labels are excluded from the unknown class. The complement study evaluates the frozen Cityscapes A2 checkpoint on the 500-image validation split.
+
+\section{Base Structured-Abstention Checkpoint}
+The frozen scoring path used in the complement study originates from the structured-abstention model. Its encoder is Swin-T with an FPN-style pixel decoder and a mask/query parser. Seen unknowns are available as a generic unknown target during training; held-out unseen classes are not. The complement method does not claim this architecture is necessary or superior to a conventional $K+1$ segmenter. It is used because the completed A2 checkpoints provide a stable source of known predictions and anomaly evidence.
+
+The candidate score used by the existing implementation is
+\begin{equation}
+ s_i=\frac{1}{|C_i|}\sum_{x\in C_i}\left[0.8(1-p_{\rm best}(x))+0.2U_{\rm union}(x)\right].
+\end{equation}
+The original ensemble weights were selected on validation data and then frozen within the corresponding evaluation pipeline.
+
+\section{Complement Candidate Generation Details}
+For each known class name, the concept-promptable model returns concept-matched masks. These masks are unioned to form $M_{\rm known}$. The foreground residual is
+\begin{equation}
+M_{\rm comp}=M_{\rm fg}\setminus M_{\rm known}.
+\end{equation}
+Class-agnostic mask generation partitions this residual into candidates. Candidates are filtered by minimum area and overlap with $M_{\rm known}$, then selected by the mean anomaly score.
+
+The validation-selected settings reported by the existing study are:
+\begin{table}[h]
+\centering
+\caption{Complement-filter operating points used in the completed runs.}
+\begin{tabular}{lccc}
+\toprule
+Dataset & $\tau_{\rm area}$ & $\tau_{\rm overlap}$ & $\tau_{\rm fusion}$ \\
+\midrule
+VOC & 128 & 0.50 & 0.50 \\
+Cityscapes & 64 & 0.80 & 0.10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Prompt-Form Ablation}
+The completed prompt-form diagnostic compared direct negation, generic concept prompts, enumeration-then-complement, and negative exemplars. Enumeration-then-complement was the only form that consistently produced a non-trivial structural signal.
+\begin{table}[h]
+\centering
+\caption{Existing prompt-form diagnostic. UMR denotes unknown-mask recall on the prompt diagnostic subset.}
+\footnotesize
+\begin{tabular}{lcccc}
+\toprule
+Form & VOC UMR@0.5 & VOC F1 & City UMR@0.1 & City F1 \\
+\midrule
+Direct negation & 0.0000 & 0.0075 & 0.0000 & 0.0167 \\
+Generic concept & 0.0000 & 0.0368 & 0.0000 & 0.0445 \\
+Enumeration + complement & 0.5266 & 0.3721 & 0.1220 & 0.0736 \\
+Negative exemplar & 0.0000 & 0.0700 & 0.0000 & 0.0235 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{SMIYC Public-Validation Results}
+The road-scene experiments use the Cityscapes checkpoint without additional training. These results are included as transfer/mechanism evidence rather than as a leaderboard comparison.
+\begin{table*}[h]
+\centering
+\caption{Existing SMIYC public-validation results.}
+\footnotesize
+\begin{tabular}{llcccccc}
+\toprule
+Dataset & Variant & Pix AP & Pix Best F1 & SegEval F1 mean & F1@25 & F1@50 & F1@75 \\
+\midrule
+RA21 & Baseline & 0.5937 & 0.5186 & 0.0326 & 0.0732 & 0.0240 & 0.0114 \\
+RA21 & L1 & 0.3436 & 0.5146 & 0.2990 & 0.4000 & 0.3111 & 0.1778 \\
+RA21 & L2 & 0.6211 & 0.5459 & 0.0313 & 0.1007 & 0.0278 & 0.0000 \\
+RO21 & Baseline & 0.4989 & 0.5117 & 0.0766 & 0.1600 & 0.0690 & 0.0139 \\
+RO21 & L1 & 0.1363 & 0.2197 & 0.2039 & 0.2333 & 0.2140 & 0.1429 \\
+RO21 & L2 & 0.5330 & 0.5256 & 0.0740 & 0.1695 & 0.0824 & 0.0235 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The divergence between pixel and instance metrics is retained as a limitation of the present selector. L2 improves pixel purity but may fragment or suppress large anomaly instances with non-uniform internal scores.
+
+\section{Additional Candidate Diagnostics}
+On the VOC diagnostic subset, known-union IoU is 0.6956, complement IoU is 0.8885, unknown recall is 0.9997, and complement precision is 0.8887. Cityscapes has known-union IoU 0.5324, complement IoU 0.1709, unknown recall 0.9898, and precision 0.1711. On the Synapse medical probe, known-union IoU is 0.6517, complement unknown recall is 0.9358, precision is 0.0454, and known leakage is 0.9546. These values motivate the effective/trade-off/failure regime interpretation in the main paper.
+
+\section{Interpretive Guardrails}
+The rewritten paper adopts the following restrictions on its claims:
+\begin{itemize}[leftmargin=*]
+  \item A1 is a supervised seen-unknown control, not an unseen-category discovery protocol.
+  \item Native unknown queries are not claimed to be necessary; the $K+1$ baseline is explicitly acknowledged as stronger on Synapse A1.
+  \item Diagnostic and complement-study baselines are not numerically merged when their evaluator provenance differs.
+  \item The candidate-generation conclusion is stated for the studied settings and supported primarily by the controlled VOC/Cityscapes interventions.
+  \item Medical CT is reported as a failure boundary, not hidden as a negative result.
+\end{itemize}
+
+\bibliographystyle{IEEEtran}
+\bibliography{../saseg_paper/references,references_additions}
+\end{document}
