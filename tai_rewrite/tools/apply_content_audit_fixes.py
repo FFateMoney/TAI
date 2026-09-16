@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# One-shot audited text fixes for the rewritten manuscript.
 main_path = Path('tai_rewrite/main.tex')
 text = main_path.read_text(encoding='utf-8')
 
