@@ -81,10 +81,11 @@ Negative exemplar & 0.0000 & 0.0700 & 0.0000 & 0.0235 \\
 
 \section{SMIYC Public-Validation Results}
 The road-scene experiments use the Cityscapes checkpoint without additional training. These results are included as transfer/mechanism evidence rather than as a leaderboard comparison.
-\begin{table*}[h]
+\begin{table*}[t]
 \centering
 \caption{Existing SMIYC public-validation results.}
 \footnotesize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llcccccc}
 \toprule
 Dataset & Variant & Pix AP & Pix Best F1 & SegEval F1 mean & F1@25 & F1@50 & F1@75 \\
@@ -97,6 +98,7 @@ RO21 & L1 & 0.1363 & 0.2197 & 0.2039 & 0.2333 & 0.2140 & 0.1429 \\
 RO21 & L2 & 0.5330 & 0.5256 & 0.0740 & 0.1695 & 0.0824 & 0.0235 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table*}
 
 The divergence between pixel and instance metrics is retained as a limitation of the present selector. L2 improves pixel purity but may fragment or suppress large anomaly instances with non-uniform internal scores.
@@ -114,6 +116,4 @@ The rewritten paper adopts the following restrictions on its claims:
   \item Medical CT is reported as a failure boundary, not hidden as a negative result.
 \end{itemize}
 
-\bibliographystyle{IEEEtran}
-\bibliography{../saseg_paper/references,references_additions}
 \end{document}
