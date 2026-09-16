@@ -23,7 +23,7 @@ def resize_table(src: str, label: str, width: str) -> str:
     repl = m.group(1) + f'\\resizebox{{{width}}}{{!}}{{%\n' + m.group(2) + '\n}%'
     return src[:m.start()] + repl + src[m.end():]
 
-for label in ['tab:a1_control', 'tab:proposal_diag', 'tab:candidate_quality']:
+for label in ['tab:a1_control', 'tab:proposal_diag', 'tab:candidate_quality', 'tab:intervention']:
     text = resize_table(text, label, '\\columnwidth')
 text = resize_table(text, 'tab:main_results', '\\textwidth')
 
@@ -36,14 +36,30 @@ if '\\FloatBarrier\n\\section{Discussion}' not in text:
 
 main_path.write_text(text, encoding='utf-8')
 
-# Remove the empty bibliography page from the supplement (it contains no citations).
 supp_path = Path('tai_rewrite/supplementary.tex')
 supp = supp_path.read_text(encoding='utf-8')
-supp = supp.replace(
-    '\n\\bibliographystyle{IEEEtran}\n\\bibliography{../saseg_paper/references,references_additions}\n\\end{document}\n',
-    '\n\\end{document}\n',
-    1,
-)
-supp_path.write_text(supp, encoding='utf-8')
 
-print('Applied visual-layout fixes.')
+# Fit the wide SMIYC table to the text block and use a valid float placement.
+supp = supp.replace('\\begin{table*}[h]\n\\centering\n\\caption{Existing SMIYC public-validation results.}',
+                    '\\begin{table*}[t]\n\\centering\n\\caption{Existing SMIYC public-validation results.}', 1)
+smiyc_pat = re.compile(
+    r'(\\caption\{Existing SMIYC public-validation results\.\}.*?\\footnotesize\n)(\\begin\{tabular\}.*?\\end\{tabular\})',
+    re.S,
+)
+m = smiyc_pat.search(supp)
+if not m:
+    raise RuntimeError('SMIYC table not found')
+if '\\resizebox' not in m.group(0):
+    repl = m.group(1) + '\\resizebox{\\textwidth}{!}{%\n' + m.group(2) + '\n}%'
+    supp = supp[:m.start()] + repl + supp[m.end():]
+
+# The supplement contains no citations; remove the empty bibliography robustly.
+supp = re.sub(
+    r'\n\\bibliographystyle\{IEEEtran\}\n\\bibliography\{\.\./saseg_paper/references,references_additions\}\n',
+    '\n',
+    supp,
+    count=1,
+)
+
+supp_path.write_text(supp, encoding='utf-8')
+print('Applied final LaTeX layout fixes.')
