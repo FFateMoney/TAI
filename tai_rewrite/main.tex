@@ -11,6 +11,8 @@
 \usepackage{xcolor}
 \let\labelindent\relax
 \usepackage{enumitem}
+\usepackage{xspace}
+\usepackage{placeins}
 \usepackage[colorlinks,urlcolor=blue,linkcolor=blue,citecolor=blue]{hyperref}
 
 \graphicspath{{../complement_paper/fig/}{../saseg_paper/}}
@@ -21,7 +23,7 @@
 \newcommand{\cUs}{\mathcal{U}_{\mathrm{seen}}}
 \newcommand{\cUu}{\mathcal{U}_{\mathrm{unseen}}}
 \newcommand{\Cand}{\mathcal{C}}
-\newcommand{\CCG}{\textsc{CCG}}
+\newcommand{\CCG}{\textsc{CCG}\xspace}
 \newcommand{\samthree}{SAM~3}
 \newcommand{\samtwo}{SAM~2}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -125,6 +127,7 @@ The seen-unknown setting clarifies what should and should not be claimed. On Syn
 \caption{Synapse seen-unknown control (single seed for independent architectures). A1 is treated as supervised $K{+}1$ segmentation rather than a claim of open-world discovery.}
 \label{tab:a1_control}
 \footnotesize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 Method & Known mIoU & Unknown F1 & Unknown IoU \\
@@ -134,6 +137,7 @@ PerPixel-$K{+}1$ (direct) & 0.825 & \textbf{0.797} & \textbf{0.663} \\
 Structured query baseline & 0.811 & 0.721 & 0.564 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
 \subsection{High Ranking Quality, Near-Zero Structured F1}
@@ -168,6 +172,7 @@ A linear separability test further rules out the absence of discriminative repre
 \caption{Existing proposal/refinement diagnostics on Synapse A2.}
 \label{tab:proposal_diag}
 \footnotesize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 Variant & Union IoU & Hit@0.10 & Comp. Prec.@0.10 \\
@@ -179,6 +184,7 @@ Best lightweight refinement & 0.073 & 0.440 & 0.172 \\
 Ensemble-proposal upper bound & \textbf{0.153} & \textbf{0.700} & \textbf{0.188} \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
 These diagnostics motivate a direct candidate intervention rather than further score sharpening.
@@ -244,6 +250,7 @@ Table~\ref{tab:main_results} reports the unified A2 pipeline used by the complem
 \caption{Full-system A2 results from the unified candidate-generation evaluation pipeline. Road-scene rows reuse the Cityscapes checkpoint and report the mechanism study's unified-protocol unknown-output metrics; these F1 values are distinct from the official SMIYC Pix Best F1 reported separately.}
 \label{tab:main_results}
 \footnotesize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llcccccc}
 \toprule
 Dataset & Method & Known mIoU & Unknown F1 & Unknown IoU & Precision & Recall & AUROC$_{\rm fg}$ \\
@@ -262,6 +269,7 @@ RoadObstacle21 & Baseline & --- & 0.054 & 0.028 & 0.037 & 0.103 & 0.949 \\
 RoadObstacle21 & L2 (\CCG) & --- & \textbf{0.515} & \textbf{0.347} & 0.423 & \textbf{0.659} & 0.960 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table*}
 
 \begin{figure}[t]
@@ -316,6 +324,7 @@ Table~\ref{tab:candidate_quality} summarizes existing candidate diagnostics. VOC
 \caption{Existing candidate-quality diagnostics before final score fusion.}
 \label{tab:candidate_quality}
 \footnotesize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 Dataset & Known-union IoU & Comp. IoU & Unk. recall & Comp. precision \\
@@ -325,6 +334,7 @@ Cityscapes & 0.532 & 0.171 & 0.990 & 0.171 \\
 Synapse CT & 0.652 & --- & 0.936 & 0.045 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
 The CT failure is especially informative. The complement has high recall because incomplete known grounding leaves large residual areas, but precision is only $0.045$ and known leakage is approximately $0.955$. This is not a score-selection problem; the candidate source itself is invalid because the known explanation is incomplete.
@@ -370,6 +380,7 @@ Figure~\ref{fig:qualitative} summarizes the three regimes using existing visuali
 \subsection{Road-Scene External Evaluation}
 The SMIYC public-validation evaluator reveals an additional limitation and uses metrics that should not be conflated with the unified-protocol F1 above. On RoadAnomaly21, L2 raises pixel AP from 0.5937 to 0.6211 and Pix Best F1 from 0.5186 to 0.5459; on RoadObstacle21, AP rises from 0.4989 to 0.5330 and Pix Best F1 from 0.5117 to 0.5256. At the same time, L1 is substantially stronger than L2 on instance-oriented SegEval F1 mean (0.2990 versus 0.0313 on RoadAnomaly21; 0.2039 versus 0.0740 on RoadObstacle21). Mean-score mask filtering improves pixel purity while sometimes discarding or fragmenting large anomalies with spatially non-uniform scores. This divergence shows that candidate generation and candidate selection should be evaluated at both pixel and instance levels; the current L2 selector is not instance preserving.
 
+\FloatBarrier
 \section{Discussion}
 \label{sec:discussion}
 
