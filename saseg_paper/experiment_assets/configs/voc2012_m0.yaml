@@ -1,0 +1,21 @@
+# VOC2012 M=0 — Ablation without unknown slots
+# Based on voc2012_a1.yaml with num_unknown_queries=0
+
+data:
+  dataset: voc2012
+  data_root: /my_storage/chen/saseg/dataset
+  image_size: 512
+  num_known_classes: 15
+  known_labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16]
+  eval_protocol: "A1"
+  seen_unknown_labels: [17, 18, 19]
+  unseen_unknown_labels: [14, 20]
+
+model:
+  num_unknown_queries: 0
+
+train:
+  save_dir: /my_storage/chen/saseg/checkpoints/voc2012_m0
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions/voc2012_m0

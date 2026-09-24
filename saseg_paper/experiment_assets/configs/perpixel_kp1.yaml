@@ -1,0 +1,17 @@
+# PerPixel-K+1: K+1-class segmentor (unknown = class K+1, A1 protocol)
+# All unknown labels (9-13) used in training
+
+data:
+  eval_protocol: "A1"
+
+model:
+  perpixel_include_unknown: true
+  num_unknown_queries: 0
+
+train:
+  seed: 42
+  save_dir: /my_storage/chen/saseg/checkpoints/perpixel_kp1
+  experiment_name: perpixel_kp1
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions

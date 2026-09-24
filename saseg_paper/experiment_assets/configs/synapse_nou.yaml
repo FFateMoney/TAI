@@ -1,0 +1,22 @@
+# Synapse No-U:
+# training does not use unknown labels, but validation still evaluates
+# the full A1 unknown union (labels 9-13).
+
+data:
+  dataset: synapse
+  eval_protocol: "A1"
+  train_unknown_labels: []
+  val_unknown_labels: [9, 10, 11, 12, 13]
+  test_unknown_labels: [9, 10, 11, 12, 13]
+
+loss:
+  lambda_unknown: 0.0
+  lambda_boundary: 0.0
+  lambda_exclusion: 0.0
+  ball_push_unknown: false
+
+train:
+  save_dir: /my_storage/chen/saseg/checkpoints/synapse_nou
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions/synapse_nou

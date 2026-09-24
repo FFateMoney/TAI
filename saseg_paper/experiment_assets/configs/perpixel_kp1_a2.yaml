@@ -1,0 +1,19 @@
+# PerPixel-K+1-A2: K+1-class segmentor with A2 protocol
+# Training unknown: labels 9-11 only; Eval unknown: labels 12-13
+
+data:
+  eval_protocol: "A2"
+  seen_unknown_labels: [9, 10, 11]
+  unseen_unknown_labels: [12, 13]
+
+model:
+  perpixel_include_unknown: true
+  num_unknown_queries: 0
+
+train:
+  seed: 42
+  save_dir: /my_storage/chen/saseg/checkpoints/perpixel_kp1_a2
+  experiment_name: perpixel_kp1_a2
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions

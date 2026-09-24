@@ -1,0 +1,18 @@
+# Cityscapes A1 — Seen Unknown Structured Abstention
+# Inherits all other settings from default.yaml
+
+data:
+  dataset: cityscapes
+  data_root: /my_storage/chen/saseg/dataset
+  image_size: 512
+  num_known_classes: 14
+  known_labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+  eval_protocol: "A1"
+  seen_unknown_labels: [14, 15, 16]
+  unseen_unknown_labels: [17, 18]
+
+train:
+  save_dir: /my_storage/chen/saseg/checkpoints/cityscapes_a1
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions/cityscapes_a1

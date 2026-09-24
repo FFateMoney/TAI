@@ -1,0 +1,17 @@
+data:
+  dataset: amos22
+  num_known_classes: 8
+  known_labels: [1, 2, 3, 4, 6, 7, 8, 10]
+  eval_protocol: "A1"
+  seen_unknown_labels: [5, 9, 13, 14]
+  unseen_unknown_labels: [11, 12, 15]
+  amos_ct_only: true
+
+model:
+  num_unknown_queries: 0
+
+train:
+  save_dir: /my_storage/chen/saseg/checkpoints/amos22_ct_m0
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions/amos22_ct_m0

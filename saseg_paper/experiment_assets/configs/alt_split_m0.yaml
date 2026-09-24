@@ -1,0 +1,115 @@
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  dataset: synapse            # synapse | amos22 | mood
+  data_root: /my_storage/chen/saseg/dataset
+  image_size: 512             # H=W after resize
+  num_known_classes: 8        # K: synapse=8, amos22=15
+  known_labels: []            # optional explicit known taxonomy; [] => dataset default
+  # CT windowing (HU); applied before [0,1] normalisation
+  ct_window_center: 40
+  ct_window_width: 400
+
+  train_split: 0.8
+  val_split: 0.1
+  # test_split is the remainder
+
+  # Protocol A2: unseen unknown evaluation
+  # "A1" = all unknown labels used in train & eval
+  # "A2" = seen_unknown for train, unseen_unknown for eval
+  eval_protocol: "A1"
+  seen_unknown_labels: [9, 10, 12]       # documentation of the swapped split
+  unseen_unknown_labels: [11, 13]        # documentation of the swapped split
+  # Synapse A1 ignores seen/unseen lists unless per-split unknown labels
+  # are explicitly overridden here.
+  train_unknown_labels: [9, 10, 12]
+  val_unknown_labels: [9, 10, 12]
+  test_unknown_labels: [9, 10, 12]
+  amos_ct_only: false        # when dataset=amos22, keep only case ids < 500
+
+  num_workers: 8
+  pin_memory: true
+
+# ── Augmentation ──────────────────────────────────────────────────────────────
+augmentation:
+  hflip_prob: 0.5
+  rotate_deg: 15              # ± degrees
+  scale_range: [0.8, 1.2]
+  brightness_limit: 0.2
+  contrast_limit: 0.2
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  # Encoder
+  encoder: swin_tiny_patch4_window7_224.ms_in22k
+  encoder_pretrained: true    # load ImageNet-21k weights via timm
+  encoder_freeze_stages: 2    # freeze first N stages (0-indexed)
+
+  # Pixel Decoder
+  fpn_out_channels: 256       # d
+
+  # Region Parser
+  num_decoder_layers: 3
+  query_dim: 256              # d
+  num_unknown_queries: 0      # M
+  # known queries = num_known_classes, plus 1 background + 1 no-object
+
+  # Support Module
+  num_prototypes: 2           # R per class
+  prototype_momentum: 0.99
+  prototype_update_iou_thr: 0.8   # min mask IoU to trigger EMA update
+  prototype_pull_iou_thr: 0.5     # min mask IoU to include in L_pull
+
+  # No-object
+  use_no_object: true
+  tau_obj: 0.5                # no-object confidence threshold (inference)
+
+# ── Loss ──────────────────────────────────────────────────────────────────────
+loss:
+  lambda_unknown: 1.0
+  lambda_ball: 0.5
+  lambda_boundary: 0.3
+  lambda_exclusion: 0.0
+
+  # L_ball sub-weights
+  lambda_rad: 0.01
+  push_margin: 0.5
+  ball_push_unknown: true
+
+  # L_unknown sub-weights
+  lambda_div: 0.001
+  div_iou_cap: 0.5            # IoU above which L_div activates
+
+  # L_boundary
+  boundary_sigma: 2.0         # Gaussian blur σ (pixels)
+  boundary_kernel_size: 5
+
+  # E4 minimal exclusion (disabled by default)
+  exclusion_min_known_conf: 0.7
+  exclusion_boundary_relax: 1.0
+
+# ── Training ──────────────────────────────────────────────────────────────────
+train:
+  epochs: 100
+  batch_size: 8
+  optimizer: adamw
+  lr: 1.0e-4
+  lr_backbone: 1.0e-5         # encoder stages that are NOT frozen
+  weight_decay: 1.0e-4
+
+  scheduler: cosine
+  warmup_steps: 500
+
+  # Prototype warm-up
+  warmup_data_fraction: 0.05  # fraction of training data for K-Means init
+
+  grad_clip: 1.0
+  log_interval: 50            # steps between tensorboard writes
+  save_dir: /my_storage/chen/saseg/checkpoints/alt_split/alt_m0
+  resume: ""                  # path to checkpoint to resume from
+  init_from: ""               # path to checkpoint for weight-only init (no optimizer/scheduler/scaler resume)
+
+# ── Inference ─────────────────────────────────────────────────────────────────
+inference:
+  tau_abs: 0.0                # unknown abstention threshold (tuned on val)
+  tau_feat: 0.1               # feature-presence threshold for support-deficit path
+  output_dir: /my_storage/chen/saseg/predictions

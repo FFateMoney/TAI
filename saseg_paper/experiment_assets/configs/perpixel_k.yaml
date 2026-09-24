@@ -1,0 +1,17 @@
+# PerPixel-K: Standard K-class segmentor (no unknown training)
+# Unknown detected post-hoc via MSP/Energy/MaxLogit
+
+data:
+  eval_protocol: "A1"
+
+model:
+  perpixel_include_unknown: false
+  num_unknown_queries: 0    # not used, but keep for compatibility
+
+train:
+  seed: 42
+  save_dir: /my_storage/chen/saseg/checkpoints/perpixel_k
+  experiment_name: perpixel_k
+
+inference:
+  output_dir: /my_storage/chen/saseg/predictions
